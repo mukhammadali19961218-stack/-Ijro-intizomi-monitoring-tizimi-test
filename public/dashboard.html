@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ijro Intizomi Monitoring Tizimi — Boshqaruv Paneli</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body class="dashboard-page">
+
+  <!-- Top Running Ticker (Test rejimida ishlamoqda) -->
+  <div class="test-mode-ticker-bar" title="Tizim sinov (test) rejimida ishlamoqda">
+    <div class="ticker-track">
+      <div class="ticker-content">
+        <span class="ticker-segment">
+          <span class="ticker-icon-spin">⚙️</span>
+          <span class="ticker-tag">DIQQAT</span>
+          <span class="ticker-text">Test rejimida ishlamoqda</span>
+        </span>
+        <span class="ticker-dot">•</span>
+        <span class="ticker-segment">
+          <span class="ticker-tag">IJRO INTIZOMI</span>
+          <span class="ticker-text">Tizim sinov (test) rejimida ishlamoqda</span>
+        </span>
+        <span class="ticker-dot">•</span>
+        <span class="ticker-segment">
+          <span class="ticker-icon-spin">🔄</span>
+          <span class="ticker-tag">SINOV REJIMI</span>
+          <span class="ticker-text">Test rejimida ishlamoqda</span>
+        </span>
+        <span class="ticker-dot">•</span>
+        <span class="ticker-segment">
+          <span class="ticker-tag">«IES» AJ</span>
+          <span class="ticker-text">Monitoring axborot tizimi test rejimida ishlamoqda</span>
+        </span>
+        <span class="ticker-dot">•</span>
+      </div>
+      <!-- Duplicate content for seamless 100% loop -->
+      <div class="ticker-content" aria-hidden="true">
+        <span class="ticker-segment">
+          <span class="ticker-icon-spin">⚙️</span>
+          <span class="ticker-tag">DIQQAT</span>
+          <span class="ticker-text">Test rejimida ishlamoqda</span>
+        </span>
+        <span class="ticker-dot">•</span>
+        <span class="ticker-segment">
+          <span class="ticker-tag">IJRO INTIZOMI</span>
+          <span class="ticker-text">Tizim sinov (test) rejimida ishlamoqda</span>
+        </span>
+        <span class="ticker-dot">•</span>
+        <span class="ticker-segment">
+          <span class="ticker-icon-spin">🔄</span>
+          <span class="ticker-tag">SINOV REJIMI</span>
+          <span class="ticker-text">Test rejimida ishlamoqda</span>
+        </span>
+        <span class="ticker-dot">•</span>
+        <span class="ticker-segment">
+          <span class="ticker-tag">«IES» AJ</span>
+          <span class="ticker-text">Monitoring axborot tizimi test rejimida ishlamoqda</span>
+        </span>
+        <span class="ticker-dot">•</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compact Formal Header -->
+  <header class="dashboard-header">
+    <div class="header-container">
+      <div class="header-brand">
+        <img src="/images/ies_logo.svg" alt="«IES» AJ Logotipi" class="brand-emblem" id="brand-logo" onerror="this.src='/images/ies_logo_raw.png'">
+        <div class="brand-info">
+          <span class="brand-title" id="org-name-text">«ISSIQLIK ELEKTR STANSIYALARI» AJ</span>
+          <span class="brand-subtitle" id="sub-org-text">Ijro intizomi monitoring tizimi</span>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div class="test-badge-pill" title="Tizim hozirda test rejimida ishlamoqda">
+          <span class="spin-gear">⚙️</span>
+          <span>Test rejimida ishlamoqda</span>
+        </div>
+
+        <div class="live-indicator" title="Tizim server bilan doimiy aloqada">
+          <span class="pulse-dot"></span>
+          <span>Jonli yangilanadi</span>
+        </div>
+
+        <button class="btn-header" id="refresh-btn" title="Ma’lumotlarni yangilash">
+          <svg class="spin-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span id="refresh-label">Ma’lumotlarni yangilash</span>
+        </button>
+
+        <button class="btn-header" id="fullscreen-btn" title="To‘liq ekran rejimi">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+          <span id="fullscreen-text">To‘liq ekran</span>
+        </button>
+
+        <a href="/admin" class="btn-header admin-btn" id="admin-link-btn" style="display: none;" title="Boshqaruv paneliga o‘tish">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          <span>Admin panel</span>
+        </a>
+
+        <div class="user-badge" id="current-user-box">
+          <span id="user-display-name">Foydalanuvchi</span>
+          <span class="user-badge-role" id="user-role-badge">Admin</span>
+        </div>
+
+        <button class="btn-header" id="logout-btn" title="Tizimdan chiqish">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+          <span>Chiqish</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Viewport -->
+  <main class="dashboard-main">
+
+    <!-- TOP SUMMARY ROW: Exactly 3 large cards -->
+    <section class="top-summary-row" aria-label="Umumiy topshiriqlar ko‘rsatkichlari">
+
+      <!-- 1. JAMI TOPSHIRIQLAR -->
+      <article class="summary-card neutral" id="card-total" tabindex="0" role="button" aria-label="Jami topshiriqlar ro‘yxatini ko‘rish">
+        <div class="card-top-row">
+          <div class="pill-heading">JAMI TOPSHIRIQLAR</div>
+          <div class="card-top-icon" aria-hidden="true">
+            <!-- Layers Icon (matching screenshot) -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="card-metric-row">
+          <span class="metric-number" id="metric-total-num">--</span>
+          <span class="metric-suffix">ta topshiriq</span>
+        </div>
+
+        <div class="card-divider"></div>
+
+        <div class="card-bottom-row">
+          <span class="card-caption">Barcha topshiriqlar (bajarilganlar bilan)</span>
+          <div class="card-arrow-btn" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="7" y1="17" x2="17" y2="7"/>
+              <polyline points="7 7 17 7 17 17"/>
+            </svg>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2. BAJARISH JARAYONIDA -->
+      <article class="summary-card in-progress" id="card-in-progress" tabindex="0" role="button" aria-label="Bajarish jarayonidagi topshiriqlar ro‘yxatini ko‘rish">
+        <div class="card-top-row">
+          <div class="pill-heading">BAJARISH JARAYONIDA</div>
+          <div class="card-top-icon" aria-hidden="true">
+            <!-- Clock Icon (matching screenshot) -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="card-metric-row">
+          <span class="metric-number" id="metric-progress-num">--</span>
+          <span class="metric-suffix">ijroda</span>
+        </div>
+
+        <div class="card-divider"></div>
+
+        <div class="card-bottom-row">
+          <span class="card-caption">Bajarilmagan va muddati o‘tmagan</span>
+          <div class="card-arrow-btn" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="7" y1="17" x2="17" y2="7"/>
+              <polyline points="7 7 17 7 17 17"/>
+            </svg>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3. MUDDATI O‘TGAN -->
+      <article class="summary-card overdue" id="card-overdue" tabindex="0" role="button" aria-label="Muddati o‘tgan topshiriqlar ro‘yxatini ko‘rish">
+        <div class="card-top-row">
+          <div class="pill-heading">MUDDATI O‘TGAN</div>
+          <div class="card-top-icon" aria-hidden="true">
+            <!-- Alert Triangle Icon (matching screenshot) -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="card-metric-row">
+          <span class="metric-number" id="metric-overdue-num">--</span>
+          <span class="metric-suffix">kechikkan</span>
+        </div>
+
+        <div class="card-divider"></div>
+
+        <div class="card-bottom-row">
+          <span class="card-caption">Bajarilmagan va ijro muddati o‘tgan</span>
+          <div class="card-arrow-btn" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="7" y1="17" x2="17" y2="7"/>
+              <polyline points="7 7 17 7 17 17"/>
+            </svg>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- DEPARTMENT HEADS SECTION: Exactly matching reference composition -->
+    <section class="department-section" aria-label="Boshqarmalar va mas’ul rahbarlar">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <!-- People Icon inside pale pink rounded square -->
+          <div class="people-icon-box" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="section-heading-text">
+            <h2 class="section-heading">Boshqarmalar va mas’ul rahbarlar</h2>
+            <span class="section-subtitle">Muddati o‘tgan topshiriqlar</span>
+          </div>
+        </div>
+
+        <!-- Top Right Pagination Controls -->
+        <div class="pagination-controls-wrap">
+          <div class="pagination-btn-group">
+            <div class="auto-rotate-badge" title="Har 5 sekundda avtomatik almashadi (kursor tutilganda to‘xtaydi)">
+              <span class="auto-rotate-indicator"></span>
+              <span>5s</span>
+            </div>
+            <button class="page-nav-btn" id="prev-page-btn" aria-label="Oldingi sahifa" title="Oldingi sahifa">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+            <span class="page-indicator-text" id="page-indicator-text">1 / 1</span>
+            <button class="page-nav-btn" id="next-page-btn" aria-label="Keyingi sahifa" title="Keyingi sahifa">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Small Pagination Dots -->
+          <div class="pagination-dots" id="pagination-dots" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <!-- Department Head Cards Grid (Exactly 3 cards on desktop) -->
+      <div class="dept-cards-grid" id="dept-cards-container">
+        <!-- Rendered dynamically via dashboard.js -->
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #64748b;">
+          Ma’lumotlar yuklanmoqda...
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Filtered Tasks Modal -->
+  <div class="modal-overlay" id="task-modal" role="dialog" aria-modal="true" aria-labelledby="modal-task-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-task-title">Topshiriqlar ro‘yxati</h3>
+        <button class="modal-close-btn" id="close-modal-btn" aria-label="Yopish">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div style="display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;">
+          <div class="search-box" style="flex: 1; min-width: 260px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="modal-search-input" placeholder="Topshiriq mazmuni yoki raqami bo‘yicha izlash...">
+          </div>
+          <select id="modal-dept-select" class="filter-select">
+            <option value="all">Barcha boshqarmalar</option>
+          </select>
+        </div>
+
+        <div class="modal-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">№</th>
+                <th>Topshiriq mazmuni / Hujjat</th>
+                <th>Mas’ul boshqarma</th>
+                <th>Mas’ul ijrochi</th>
+                <th>Ijro muddati</th>
+                <th>Holati</th>
+              </tr>
+            </thead>
+            <tbody id="modal-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="modal-empty-state" style="display: none; text-align: center; padding: 40px; color: #64748b;">
+          Mos keluvchi topshiriqlar topilmadi.
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 18px;">
+          <span style="font-size: 13px; color: #64748b;" id="modal-count-info">0 ta topshiriq</span>
+          <div class="pagination-btn-group" id="modal-pagination">
+            <button class="page-nav-btn" id="modal-prev-btn" disabled>&lt;</button>
+            <span class="page-indicator-text" id="modal-page-text">1 / 1</span>
+            <button class="page-nav-btn" id="modal-next-btn" disabled>&gt;</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-footer-close-btn">Yopish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

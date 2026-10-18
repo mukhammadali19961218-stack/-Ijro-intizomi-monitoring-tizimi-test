@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tizimga kirish — Ijro Intizomi Monitoring Tizimi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/login.css">
+</head>
+<body class="login-body">
+
+  <!-- Background overlay particles or subtle gradient reflection -->
+  <div class="login-overlay"></div>
+
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-badge">
+        <div class="login-logo-wrapper">
+          <img src="/images/ies_logo.svg" alt="«IES» AJ Logotipi" class="login-logo-img" onerror="this.src='/images/ies_logo_raw.png'">
+        </div>
+        <div class="login-system-title">IJRO INTIZOMI</div>
+        <div class="login-system-sub">Monitoring va nazorat tizimi</div>
+      </div>
+      <h1 class="login-title">"IES" AJ</h1>
+    </div>
+
+    <form class="login-form" id="login-form" autocomplete="on">
+      <div id="login-error-alert" class="login-error" style="display: none;"></div>
+
+      <div class="input-pill-wrapper">
+        <input 
+          type="text" 
+          id="username" 
+          name="username"
+          class="input-pill" 
+          placeholder="Foydalanuvchi nomi / Login" 
+          required 
+          autocomplete="username"
+          spellcheck="false"
+        >
+      </div>
+
+      <div class="input-pill-wrapper">
+        <input 
+          type="password" 
+          id="password" 
+          name="password"
+          class="input-pill" 
+          placeholder="Maxfiy parol" 
+          required 
+          autocomplete="current-password"
+        >
+      </div>
+
+      <div class="login-options-row">
+        <label class="remember-label">
+          <input type="checkbox" id="remember-me" checked>
+          <span class="custom-checkbox"></span>
+          <span class="label-text">Meni eslab qol</span>
+        </label>
+        <a href="javascript:void(0)" class="forgot-link" id="forgot-password-link" onclick="alert('Parolni tiklash uchun tizim administratoriga murojaat qiling (admin: admin123)')">Parolni unutdingizmi?</a>
+      </div>
+
+      <button type="submit" class="btn-pill-submit" id="login-submit-btn">
+        <span>Tizimga kirish</span>
+      </button>
+    </form>
+
+    <div class="login-footer-section">
+      <div class="demo-badge-title">Tezkor kirish (Sinov profillari)</div>
+      <div class="demo-pill-group">
+        <button type="button" class="btn-pill-demo" id="demo-admin-btn" title="Administrator profili">
+          👑 Administrator
+        </button>
+        <button type="button" class="btn-pill-demo" id="demo-viewer-btn" title="Kuzatuvchi profili">
+          👁️ Kuzatuvchi
+        </button>
+      </div>
+      <div class="login-subtext">
+        Texnik yordam va murojaatlar uchun: <a href="mailto:support@ies.uz" class="highlight-contact" style="text-decoration: none; color: #38bdf8;">support@ies.uz</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const submitBtn = document.getElementById('login-submit-btn');
+    const errorAlert = document.getElementById('login-error-alert');
+
+    const demoAdminBtn = document.getElementById('demo-admin-btn');
+    const demoViewerBtn = document.getElementById('demo-viewer-btn');
+
+    demoAdminBtn.addEventListener('click', () => {
+      usernameInput.value = 'admin';
+      passwordInput.value = 'admin123';
+      form.requestSubmit();
+    });
+
+    demoViewerBtn.addEventListener('click', () => {
+      usernameInput.value = 'viewer';
+      passwordInput.value = 'viewer123';
+      form.requestSubmit();
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorAlert.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.querySelector('span').textContent = 'Kirilmoqda...';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: usernameInput.value.trim(),
+            password: passwordInput.value
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Login yoki parol noto‘g‘ri kiritildi');
+        }
+
+        // Redirect based on query param or role
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectUrl = urlParams.get('redirect') || (data.user.role === 'admin' ? '/admin' : '/dashboard');
+        window.location.href = redirectUrl;
+
+      } catch (err) {
+        errorAlert.textContent = err.message;
+        errorAlert.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.querySelector('span').textContent = 'Tizimga kirish';
+      }
+    });
+  </script>
+</body>
+</html>

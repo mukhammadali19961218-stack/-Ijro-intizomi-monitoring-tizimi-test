@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boshqaruv Paneli — Ijro Intizomi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-page">
+
+  <!-- Admin Header -->
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <div class="admin-brand">
+        <img src="/images/ies_logo.svg" alt="«IES» AJ Logotipi" onerror="this.src='/images/ies_logo_raw.png'">
+        <div class="admin-brand-text">
+          <h1>«IES» AJ Boshqaruv Paneli</h1>
+          <p id="admin-org-subtitle">Ijro intizomi monitoring va nazorat tizimi</p>
+        </div>
+      </div>
+
+      <nav class="admin-nav-tabs" aria-label="Bo‘limlar">
+        <button class="tab-btn active" data-tab="tab-tasks">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>Topshiriqlar</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-excel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Excel Import / Eksport</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-departments">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+          <span>Boshqarmalar va Rahbarlar</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-users">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          <span>Foydalanuvchilar</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Sozlamalar</span>
+        </button>
+      </nav>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <a href="/dashboard" class="btn btn-secondary" style="font-size: 12.5px; padding: 7px 14px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Dashboardga o‘tish</span>
+        </a>
+
+        <button class="btn btn-danger" id="admin-logout-btn" style="font-size: 12.5px; padding: 7px 14px;">
+          Chiqish
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Admin Main Content Area -->
+  <main class="admin-main">
+
+    <!-- TAB 1: TASKS MANAGEMENT -->
+    <section class="tab-panel active" id="tab-tasks">
+      <div class="admin-card">
+        <div class="admin-toolbar">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; flex: 1;">
+            <div class="search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="admin-task-search" placeholder="Topshiriq nomi yoki ijrochi bo‘yicha izlash...">
+            </div>
+
+            <select id="admin-task-status-filter" class="filter-select">
+              <option value="all">Barcha holatlar</option>
+              <option value="in_progress">Bajarish jarayonida</option>
+              <option value="overdue">Muddati o‘tgan</option>
+              <option value="completed">Bajarilgan</option>
+            </select>
+
+            <select id="admin-task-dept-filter" class="filter-select">
+              <option value="all">Barcha boshqarmalar</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" id="add-task-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Yangi topshiriq</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 40px;">№</th>
+                <th>Topshiriq mazmuni</th>
+                <th>Mas’ul boshqarma</th>
+                <th>Mas’ul ijrochi</th>
+                <th>Ijro muddati</th>
+                <th>Holati</th>
+                <th style="text-align: right; width: 140px;">Amallar</th>
+              </tr>
+            </thead>
+            <tbody id="admin-tasks-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+          <span style="font-size: 13.5px; color: #64748b;" id="admin-task-count-info">0 ta topshiriq</span>
+          <div class="pagination-btn-group">
+            <button class="page-nav-btn" id="admin-task-prev-btn">&lt;</button>
+            <span class="page-indicator-text" id="admin-task-page-text">1 / 1</span>
+            <button class="page-nav-btn" id="admin-task-next-btn">&gt;</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: EXCEL IMPORT & EXPORT -->
+    <section class="tab-panel" id="tab-excel">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        
+        <!-- Import Card -->
+        <div class="admin-card">
+          <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Excel fayldan topshiriqlarni yuklash</h2>
+          <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">
+            Standart Excel (.xlsx, .xls) faylini tanlang yoki ushbu sohaga tashlang. Tizim avtomatik ravishda boshqarmalar va muddatlarni aniqlaydi.
+          </p>
+
+          <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; display: flex; gap: 12px; align-items: flex-start;">
+            <div style="font-size: 20px; line-height: 1;">🆔</div>
+            <div style="font-size: 13px; color: #166534; line-height: 1.5;">
+              <strong>Rahbar ID raqami orqali avtomatik bog‘lash tizimi:</strong><br>
+              Excel faylingizda <code>Rahbar ID</code> (masalan: <strong>101, 102, 121...</strong>) ustunini kiritsangiz, tizim avtomatik ravishda topshiriqni mos rahbar va uning rasmi bilan bog‘laydi va dashboardda aks ettiradi. Namunaviy shablon ichidagi 2-varaqda to‘liq ro‘yxat mavjud.
+            </div>
+          </div>
+
+          <div class="upload-dropzone" id="excel-dropzone">
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">Faylni bu yerga sudrab tashlang</div>
+            <div style="font-size: 12.5px; color: #64748b;">yoki kompyuterdan tanlash uchun bosing</div>
+            <input type="file" id="excel-file-input" accept=".xlsx, .xls" style="display: none;">
+          </div>
+
+          <div style="margin-top: 18px;">
+            <label class="form-label">Yuklash rejimi:</label>
+            <div style="display: flex; gap: 16px; margin-top: 6px;">
+              <label style="font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="radio" name="import-mode" value="append" checked> Mavjud topshiriqlar ustiga qo‘shish (Append)
+              </label>
+              <label style="font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="radio" name="import-mode" value="replace"> Barcha topshiriqlarni tozalab yangilash (Replace)
+              </label>
+            </div>
+          </div>
+
+          <div id="import-status-box" style="display: none; margin-top: 18px; padding: 14px; border-radius: 12px; font-size: 13.5px;"></div>
+
+          <button class="btn btn-primary" id="start-import-btn" style="width: 100%; margin-top: 20px;" disabled>
+            Excel faylini yuklash va import qilish
+          </button>
+        </div>
+
+        <!-- Export & Template Card -->
+        <div class="admin-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Excel Shablon va Eksport</h2>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 24px;">
+              Topshiriqlarni to‘g‘ri shakllantirish uchun namunaviy shablonni yuklab olishingiz yoki mavjud bazani Excelga eksport qilishingiz mumkin.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-weight: 700; font-size: 14px; color: #0f172a;">Namunaviy Excel shablon</div>
+                  <div style="font-size: 12px; color: #64748b;">To‘g‘ri ustunlar bilan tayyorlangan shablon (.xlsx)</div>
+                </div>
+                <a href="/api/admin/tasks/template-excel" class="btn btn-secondary">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Yuklab olish
+                </a>
+              </div>
+
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-weight: 700; font-size: 14px; color: #0f172a;">Mavjud topshiriqlarni eksport qilish</div>
+                  <div style="font-size: 12px; color: #64748b;">Barcha ma’lumotlar bilan to‘liq hisobot (.xlsx)</div>
+                </div>
+                <a href="/api/admin/tasks/export-excel" class="btn btn-primary">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Eksport qilish
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div style="background: #eff6ff; border: 1px solid #dbeafe; border-radius: 12px; padding: 14px; font-size: 12.5px; color: #1e40af; margin-top: 24px;">
+            💡 <strong>Eslatma:</strong> Excel yuklangandan so‘ng monitoring dashboardi avtomatik ravishda so‘nggi ma’lumotlar bilan yangilanadi.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: DEPARTMENTS & HEADS -->
+    <section class="tab-panel" id="tab-departments">
+      <div class="admin-card">
+        <div class="admin-toolbar">
+          <div>
+            <h2 style="font-size: 18px; font-weight: 700; color: #0f172a;">Boshqarmalar va Mas’ul Rahbarlar</h2>
+            <p style="font-size: 13px; color: #64748b;">Rahbarlar fotosuratlari, lavozimlari va boshqarma ma’lumotlarini boshqarish</p>
+          </div>
+          <button class="btn btn-primary" id="add-dept-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Yangi boshqarma</span>
+          </button>
+        </div>
+
+        <div class="admin-dept-grid" id="admin-dept-list-container">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: USERS -->
+    <section class="tab-panel" id="tab-users">
+      <div class="admin-card">
+        <div class="admin-toolbar">
+          <div>
+            <h2 style="font-size: 18px; font-weight: 700; color: #0f172a;">Tizim Foydalanuvchilari</h2>
+            <p style="font-size: 13px; color: #64748b;">Administrator va kuzatuvchi operatorlar hisoblarini boshqarish</p>
+          </div>
+          <button class="btn btn-primary" id="add-user-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Yangi foydalanuvchi</span>
+          </button>
+        </div>
+
+        <div class="modal-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Foydalanuvchi (Login)</th>
+                <th>To‘liq ismi (F.I.SH.)</th>
+                <th>Roli / Huquqi</th>
+                <th>Yaratilgan sana</th>
+                <th style="text-align: right;">Amallar</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: SETTINGS -->
+    <section class="tab-panel" id="tab-settings">
+      <div class="admin-card" style="max-width: 720px;">
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Tizim Umumiy Sozlamalari</h2>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 24px;">Monitoring panelida aks etadigan tashkilot ma’lumotlari</p>
+
+        <form id="settings-form" style="display: flex; flex-direction: column; gap: 18px;">
+          <div class="form-group">
+            <label class="form-label">Yuqori tashkilot / Vazirlik nomi</label>
+            <input type="text" id="setting-org-name" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tashkilot / Korxona nomi</label>
+            <input type="text" id="setting-sub-org-name" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tizim sarlavhasi</label>
+            <input type="text" id="setting-system-title" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Dashboard avtomatik yangilanish oralig‘i (sekundlarda)</label>
+            <input type="number" id="setting-refresh-interval" class="form-control" min="10" max="3600" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="align-self: flex-start; margin-top: 10px;">
+            Sozlamalarni saqlash
+          </button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODALS -->
+
+  <!-- 1. Task Modal (Add / Edit) -->
+  <div class="modal-overlay" id="task-form-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" id="task-modal-heading">Topshiriq qo‘shish</h3>
+        <button class="modal-close-btn" onclick="closeAdminModal('task-form-modal')">&times;</button>
+      </div>
+      <form id="task-form">
+        <div class="modal-body">
+          <input type="hidden" id="task-id">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Topshiriq raqami / ID</label>
+              <input type="text" id="form-task-number" class="form-control" placeholder="Masalan: №12">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hujjat turi</label>
+              <input type="text" id="form-doc-type" class="form-control" placeholder="Bayon, Qaror, Farmoyish...">
+            </div>
+            <div class="form-group full-width">
+              <label class="form-label">Topshiriq mazmuni *</label>
+              <textarea id="form-task-title" class="form-control" rows="3" required placeholder="Topshiriqning to‘liq matni yoki mazmuni"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mas’ul boshqarma *</label>
+              <select id="form-task-dept" class="form-control" required>
+                <!-- populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mas’ul ijrochi (F.I.SH.)</label>
+              <input type="text" id="form-task-resp" class="form-control" placeholder="Mas’ul xodim ismi">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ijro muddati *</label>
+              <input type="date" id="form-task-deadline" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Holati</label>
+              <select id="form-task-status" class="form-control">
+                <option value="in_progress">Bajarish jarayonida</option>
+                <option value="overdue">Muddati o‘tgan</option>
+                <option value="completed">Bajarilgan</option>
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label class="form-label">Izoh</label>
+              <input type="text" id="form-task-notes" class="form-control" placeholder="Qo‘shimcha izoh yoki qayd">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAdminModal('task-form-modal')">Bekor qilish</button>
+          <button type="submit" class="btn btn-primary">Saqlash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Department Modal (Add / Edit) -->
+  <div class="modal-overlay" id="dept-form-modal">
+    <div class="modal-dialog" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="dept-modal-heading">Boshqarma qo‘shish</h3>
+        <button class="modal-close-btn" onclick="closeAdminModal('dept-form-modal')">&times;</button>
+      </div>
+      <form id="dept-form">
+        <div class="modal-body">
+          <input type="hidden" id="dept-id">
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Rahbar ID raqami *</span>
+              <span id="auto-id-tag" style="font-size: 11px; background: #eff6ff; color: #1d4ed8; padding: 2px 8px; border-radius: 6px; font-weight: 700;">Avtomatik berildi</span>
+            </label>
+            <input type="number" id="form-dept-leader-id" class="form-control" required placeholder="Masalan: 124" style="font-family: monospace; font-size: 15px; font-weight: 700; color: #0f172a;">
+            <small style="font-size: 11.5px; color: #64748b; margin-top: 4px; display: block;">
+              💡 Ushbu ID raqam Excel orqali topshiriq yuklashda rahbarni avtomatik aniqlash uchun ishlatiladi.
+            </small>
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label">Boshqarma nomi *</label>
+            <input type="text" id="form-dept-name" class="form-control" required placeholder="Masalan: Xodimlar bilan ishlash boshqarmasi">
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label">Mas’ul rahbar (F.I.SH.) *</label>
+            <input type="text" id="form-dept-head" class="form-control" required placeholder="Masalan: TURG'UNOVA FERUZA ABDURAHIMOVNA">
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label">Lavozim yozuvi</label>
+            <input type="text" id="form-dept-title" class="form-control" value="Mas’ul rahbar">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Rahbar fotosurati (Portret)</label>
+            <input type="file" id="form-dept-photo" class="form-control" accept="image/*">
+            <input type="hidden" id="form-dept-delete-photo" value="false">
+            <div id="dept-photo-preview" style="margin-top: 10px;"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAdminModal('dept-form-modal')">Bekor qilish</button>
+          <button type="submit" class="btn btn-primary">Saqlash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. User Modal (Add / Edit) -->
+  <div class="modal-overlay" id="user-form-modal">
+    <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="user-modal-heading">Foydalanuvchi qo‘shish</h3>
+        <button class="modal-close-btn" onclick="closeAdminModal('user-form-modal')">&times;</button>
+      </div>
+      <form id="user-form">
+        <div class="modal-body">
+          <input type="hidden" id="user-id">
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label">Login (Foydalanuvchi nomi) *</label>
+            <input type="text" id="form-user-username" class="form-control" required autocomplete="off">
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label">To‘liq ismi (F.I.SH.) *</label>
+            <input type="text" id="form-user-fullname" class="form-control" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label">Parol <span id="pwd-help-text" style="font-size: 11px; color: #64748b;">(O‘zgartirish shart bo‘lmasa bo‘sh qoldiring)</span></label>
+            <input type="password" id="form-user-password" class="form-control" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tizimdagi roli *</label>
+            <select id="form-user-role" class="form-control">
+              <option value="viewer">Kuzatuvchi (Faqat dashboardni ko‘rish)</option>
+              <option value="admin">Administrator (To‘liq boshqaruv)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAdminModal('user-form-modal')">Bekor qilish</button>
+          <button type="submit" class="btn btn-primary">Saqlash</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>

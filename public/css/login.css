@@ -1,0 +1,384 @@
+/* ==========================================================================
+   LOGIN PAGE STYLESHEET — WHITE CLEAN BACKGROUND WITH SLEEK MODERN CARD
+   ========================================================================== */
+
+body.login-body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: #ffffff;
+  background: #ffffff;
+  background: radial-gradient(circle at 50% 30%, #ffffff 0%, #f4f6fa 100%);
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  color: #ffffff;
+  padding: 24px;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Subtle clean lighting overlay (replaces dark vignette) */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.95) 0%, rgba(240, 244, 249, 0.8) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Modern Dark Navy Glass Card on White Background */
+.login-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 410px;
+  background: #1c2734;
+  background: linear-gradient(180deg, #223140 0%, #16202c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 26px;
+  box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.28), 
+              0 8px 24px -4px rgba(15, 23, 42, 0.12),
+              0 0 0 1px rgba(15, 23, 42, 0.05);
+  padding: 38px 36px 32px 36px;
+  display: flex;
+  flex-direction: column;
+  animation: loginCardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes loginCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header & Title */
+.login-header {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.login-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* Enlarged IES corporate logo capsule (replaces Gerb) */
+.login-logo-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 14px 30px;
+  border-radius: 24px;
+  box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.45), 
+              0 0 0 1px rgba(255, 255, 255, 0.35);
+  margin-bottom: 12px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.login-logo-wrapper:hover {
+  transform: translateY(-2px) scale(1.03);
+  background: #ffffff;
+  box-shadow: 0 18px 40px -4px rgba(0, 0, 0, 0.55), 
+              0 0 28px rgba(255, 255, 255, 0.45);
+}
+
+.login-logo-img {
+  height: 82px;
+  width: auto;
+  max-width: 145px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12));
+}
+
+.login-system-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.login-system-sub {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.login-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  margin: 10px 0 0 0;
+  line-height: 1.1;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+
+/* Error message banner */
+.login-error {
+  padding: 11px 16px;
+  background: rgba(239, 68, 68, 0.28);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  border-radius: 14px;
+  color: #fee2e2;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 16px;
+  backdrop-filter: blur(10px);
+  animation: shakeAlert 0.3s ease-in-out;
+}
+
+@keyframes shakeAlert {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Form inputs (Image 2 pill shapes) */
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-pill-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.input-pill {
+  width: 100%;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+  font-size: 14.5px;
+  font-family: inherit;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.input-pill::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.input-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+.input-pill:focus {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.25), inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Remember me & Forgot Password row */
+.login-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  margin-bottom: 22px;
+  padding: 0 6px;
+  font-size: 12.5px;
+}
+
+.remember-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+
+.remember-label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  transition: all 0.15s ease;
+}
+
+.remember-label input[type="checkbox"]:checked {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+.remember-label input[type="checkbox"]:checked::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: #0b131a;
+  border-radius: 1px;
+}
+
+.forgot-link {
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.forgot-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* White Pill Submit Button (Image 2 style) */
+.btn-pill-submit {
+  width: 100%;
+  height: 48px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: none;
+  color: #0b131a;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-pill-submit:hover {
+  background: #f8fafc;
+  transform: translateY(-1.5px);
+  box-shadow: 0 10px 25px rgba(255, 255, 255, 0.28);
+}
+
+.btn-pill-submit:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.btn-pill-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Footer Section / Demo quick profiles */
+.login-footer-section {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.demo-badge-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.demo-pill-group {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn-pill-demo {
+  flex: 1;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.btn-pill-demo:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-pill-demo:active {
+  transform: translateY(0);
+}
+
+.login-subtext {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  text-align: center;
+  margin-top: 2px;
+}
+
+.highlight-contact {
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.highlight-contact:hover {
+  color: #e2e8f0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 28px 24px 24px 24px;
+    border-radius: 22px;
+  }
+  
+  .login-title {
+    font-size: 28px;
+  }
+  
+  .input-pill,
+  .btn-pill-submit {
+    height: 46px;
+  }
+}
