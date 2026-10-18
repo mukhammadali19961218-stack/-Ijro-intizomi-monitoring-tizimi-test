@@ -4,8 +4,12 @@ const crypto = require('crypto');
 const XLSX = require('xlsx');
 const bcrypt = require('bcryptjs');
 
-const DB_FILE = path.join(__dirname, '..', 'data', 'database.json');
-const PORTRAITS_DIR = path.join(__dirname, '..', 'public', 'uploads', 'portraits');
+const DB_FILE = fs.existsSync(path.join(__dirname, '..', 'data', 'database.json'))
+  ? path.join(__dirname, '..', 'data', 'database.json')
+  : path.join(process.cwd(), 'data', 'database.json');
+const PORTRAITS_DIR = fs.existsSync(path.join(__dirname, '..', 'public', 'uploads', 'portraits'))
+  ? path.join(__dirname, '..', 'public', 'uploads', 'portraits')
+  : path.join(process.cwd(), 'public', 'uploads', 'portraits');
 
 // Helpers for date parsing
 function parseDateComponents(dateVal) {

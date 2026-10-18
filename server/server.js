@@ -17,8 +17,14 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
+const fs = require('fs');
+
+const publicDir = fs.existsSync(path.join(__dirname, '..', 'public'))
+  ? path.join(__dirname, '..', 'public')
+  : path.join(process.cwd(), 'public');
+
 // Static files (CSS, JS, images, uploads)
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(publicDir));
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -28,15 +34,15 @@ app.use('/api/admin', adminRoutes);
 
 // Page routes with role enforcement
 app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
+  res.sendFile(path.join(publicDir, 'login.html'));
 });
 
 app.get('/dashboard', authenticate, (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'dashboard.html'));
+  res.sendFile(path.join(publicDir, 'dashboard.html'));
 });
 
 app.get('/admin', authenticate, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
+  res.sendFile(path.join(publicDir, 'admin.html'));
 });
 
 // Root redirects to dashboard
@@ -53,9 +59,13 @@ app.use((req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-  console.log(`- Dashboard: http://localhost:${PORT}/dashboard`);
-  console.log(`- Admin panel: http://localhost:${PORT}/admin`);
-  console.log(`- Login: http://localhost:${PORT}/login`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`- Dashboard: http://localhost:${PORT}/dashboard`);
+    console.log(`- Admin panel: http://localhost:${PORT}/admin`);
+    console.log(`- Login: http://localhost:${PORT}/login`);
+  });
+}
+
+module.exports = app;
