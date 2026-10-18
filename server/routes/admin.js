@@ -9,22 +9,26 @@ const bcrypt = require('bcryptjs');
 const { db, parseTaskDate, calculateDelayDays, determineStatus, parseDateComponents } = require('../db');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
-// Multer storage for photos
-const portraitsStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
+// Helper to save portrait (supports local disk or serverless Base64 fallback)
+function savePortraitFile(file) {
+  if (!file || !file.buffer) return '';
+  try {
     const dir = path.join(__dirname, '..', '..', 'public', 'uploads', 'portraits');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
+    const ext = path.extname(file.originalname) || '.jpg';
     const safeName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_\-\u0400-\u04FF]/g, '_');
-    cb(null, `${safeName}_${Date.now()}${ext}`);
+    const filename = `${safeName}_${Date.now()}${ext}`;
+    fs.writeFileSync(path.join(dir, filename), file.buffer);
+    return `/uploads/portraits/${filename}`;
+  } catch (err) {
+    // In serverless / read-only filesystem environments (e.g. Vercel), save as Base64 Data URL
+    return `data:${file.mimetype || 'image/jpeg'};base64,${file.buffer.toString('base64')}`;
   }
-});
+}
 
+// Multer in-memory storage for photos
 const uploadPortrait = multer({
-  storage: portraitsStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -35,23 +39,29 @@ const uploadPortrait = multer({
   }
 });
 
-// Multer storage for Excel files
-const excelStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '..', '..', 'public', 'uploads', 'excels');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    cb(null, `import_${Date.now()}${ext}`);
-  }
-});
+const handlePortraitUpload = (req, res, next) => {
+  uploadPortrait.single('photo')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: 'Rasm yuklashda xatolik: ' + err.message });
+    }
+    next();
+  });
+};
 
+// Multer in-memory storage for Excel files (no disk writes, serverless friendly)
 const uploadExcel = multer({
-  storage: excelStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 } // 25MB
 });
+
+const handleExcelUpload = (req, res, next) => {
+  uploadExcel.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: 'Excel faylini yuklashda xatolik: ' + err.message });
+    }
+    next();
+  });
+};
 
 // Protect all admin routes
 router.use(authenticate, requireAdmin);
@@ -251,15 +261,14 @@ router.post('/tasks/bulk-delete', (req, res) => {
 // ==========================================
 
 // POST /api/admin/tasks/import-excel
-router.post('/tasks/import-excel', uploadExcel.single('file'), (req, res) => {
-  if (!req.file) {
+router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
+  if (!req.file || !req.file.buffer) {
     return res.status(400).json({ error: 'Excel fayli yuklanmadi.' });
   }
 
   try {
     const importMode = req.body.mode || 'append'; // 'replace' or 'append'
-    const filePath = req.file.path;
-    const wb = XLSX.readFile(filePath);
+    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
@@ -447,8 +456,7 @@ router.post('/tasks/import-excel', uploadExcel.single('file'), (req, res) => {
 
     db.save();
 
-    // Clean up uploaded file
-    try { fs.unlinkSync(filePath); } catch (_) {}
+    // In-memory buffer processed successfully, no disk cleanup needed
 
     res.json({
       success: true,
@@ -625,7 +633,7 @@ router.get('/departments', (req, res) => {
 });
 
 // POST /api/admin/departments (supports portrait photo upload and auto/manual leaderId)
-router.post('/departments', uploadPortrait.single('photo'), (req, res) => {
+router.post('/departments', handlePortraitUpload, (req, res) => {
   try {
     const { name, headName, headTitle = 'Mas’ul rahbar', leaderId, status = 'active' } = req.body;
     if (!name || !headName) {
@@ -634,7 +642,7 @@ router.post('/departments', uploadPortrait.single('photo'), (req, res) => {
 
     let photoUrl = '';
     if (req.file) {
-      photoUrl = `/uploads/portraits/${req.file.filename}`;
+      photoUrl = savePortraitFile(req.file);
     }
 
     let assignedLeaderId = parseInt(leaderId, 10);
@@ -664,7 +672,7 @@ router.post('/departments', uploadPortrait.single('photo'), (req, res) => {
 });
 
 // PUT /api/admin/departments/:id
-router.put('/departments/:id', uploadPortrait.single('photo'), (req, res) => {
+router.put('/departments/:id', handlePortraitUpload, (req, res) => {
   try {
     const index = db.data.departments.findIndex(d => d.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: 'Boshqarma topilmadi.' });
@@ -677,7 +685,7 @@ router.put('/departments/:id', uploadPortrait.single('photo'), (req, res) => {
       photoUrl = '';
     }
     if (req.file) {
-      photoUrl = `/uploads/portraits/${req.file.filename}`;
+      photoUrl = savePortraitFile(req.file);
     }
 
     let updatedLeaderId = currentDept.leaderId;

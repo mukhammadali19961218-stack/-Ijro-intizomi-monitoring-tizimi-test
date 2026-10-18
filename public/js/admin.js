@@ -358,7 +358,16 @@
           method: 'POST',
           body: formData
         });
-        const data = await res.json();
+
+        let data;
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          const rawText = await res.text();
+          throw new Error(rawText.startsWith('<') ? `Server xatosi (${res.status}): Faylni qabul qilib bo'lmadi.` : rawText);
+        }
+
         if (!res.ok) throw new Error(data.error || 'Importda xatolik yuz berdi');
 
         importStatusBox.style.background = '#ecfdf5';

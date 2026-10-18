@@ -59,6 +59,16 @@ app.use((req, res) => {
   }
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  if (req.path && req.path.startsWith('/api/')) {
+    return res.status(err.status || 500).json({ error: err.message || 'Serverda xatolik yuz berdi' });
+  }
+  res.status(500).send('Server xatosi: ' + (err.message || 'Noma’lum xatolik'));
+});
+
+
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
