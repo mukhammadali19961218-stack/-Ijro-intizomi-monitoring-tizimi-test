@@ -301,8 +301,10 @@
       const res = await fetch(`/api/dashboard/departments?page=1&pageSize=100&onlyOverdue=false&_t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
+        // Only include departments that have tasks in the active import
+        const activeDepts = (data.items || []).filter(d => d.totalTasks > 0);
         modalDeptSelect.innerHTML = '<option value="all">Barcha boshqarmalar</option>' +
-          data.items.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+          activeDepts.map(d => `<option value="${d.id}">[ID: #${d.leaderId || '-'}] ${d.name}</option>`).join('');
       }
     } catch (err) {
       console.error('Error loading dept options:', err);
@@ -456,15 +458,26 @@
       openTasksModal({ status: 'overdue', departmentId: 'all', title: 'Muddati o‘tgan topshiriqlar' });
     });
 
-    // Refresh Button
+    // Refresh Button - Immediately fetches latest data from server
     refreshBtn.addEventListener('click', async () => {
       refreshBtn.classList.add('spinning');
-      await Promise.all([fetchStats(), fetchDepartments(1), loadDepartmentOptions()]);
-      setTimeout(() => {
-        refreshBtn.classList.remove('spinning');
+      if (refreshLabel) refreshLabel.textContent = 'Yangilanmoqda...';
+      currentPage = 1;
+      try {
+        await Promise.all([
+          fetchStats(),
+          fetchDepartments(1),
+          loadDepartmentOptions()
+        ]);
         showToast('Ma’lumotlar muvaffaqiyatli yangilandi', 'success');
-      }, 500);
-      startRotationTimer();
+      } catch (err) {
+        showToast('Ma’lumotlarni yangilashda xatolik', 'error');
+      } finally {
+        setTimeout(() => {
+          refreshBtn.classList.remove('spinning');
+        }, 400);
+        startRotationTimer();
+      }
     });
 
     // Fullscreen Toggle

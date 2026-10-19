@@ -23,7 +23,7 @@
       "name": "Xodimlar bilan ishlash boshqarmasi",
       "headName": "TURG'UNOVA FERUZA ABDURAHIMOVNA",
       "headTitle": "Mas’ul rahbar",
-      "photo": "/uploads/portraits/TURG'UNOVA FERUZA ABDURAHIMOVNA.jpg",
+      "photo": "/uploads/portraits/101.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.658Z",
       "updatedAt": "2026-10-18T07:06:08.658Z",
@@ -34,7 +34,7 @@
       "name": "Xalqaro aloqalar va investitsiyalarni jalb qilish boshqarmasi",
       "headName": "DJURAYEV ALISHER MIRZAMAHKAMOVICH",
       "headTitle": "Mas’ul rahbar",
-      "photo": "/uploads/portraits/DJURAYEV ALISHER MIRZAMAHKAMOVICH.jpg",
+      "photo": "/uploads/portraits/102.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.658Z",
       "updatedAt": "2026-10-18T07:06:08.658Z",
@@ -45,7 +45,7 @@
       "name": "Uskunalarni ta'mirlash, mahalliylashtirish va kooperatsiyani kengaytirish boshqarmasi",
       "headName": "MIRZAYEV IKROM MELSOVICH",
       "headTitle": "Mas’ul rahbar",
-      "photo": "/uploads/portraits/MIRZAYEV IKROM MELSOVICH.jpg",
+      "photo": "/uploads/portraits/103.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.658Z",
       "updatedAt": "2026-10-18T07:06:08.658Z",
@@ -78,7 +78,7 @@
       "name": "Raqamlashtirish boshqarmasi",
       "headName": "NISHANBAYEV BURXON SHUXRATOVICH",
       "headTitle": "Mas’ul rahbar",
-      "photo": "/uploads/portraits/NISHANBAYEV BURXON SHUXRATOVICH.jpg",
+      "photo": "/uploads/portraits/106.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.730Z",
       "updatedAt": "2026-10-18T07:06:08.730Z",
@@ -89,7 +89,7 @@
       "name": "Korporativ munosabatlar boshqarmasi",
       "headName": "RAVSHANBEKOV G‘OLIBBEK RAVSHANBEKOVICH",
       "headTitle": "Mas’ul rahbar",
-      "photo": "/uploads/portraits/RAVSHANBEKOV G'OLIBBEK RAVSHANBEKOVICH.jpg",
+      "photo": "/uploads/portraits/107.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.730Z",
       "updatedAt": "2026-10-18T07:06:08.730Z",
@@ -133,7 +133,7 @@
       "name": "Iqtisodiy tahlil va rejalashtirish bosh boshqarmasi",
       "headName": "ARZIXODJAYEV AKRAMXON MUNAVVAROVICH",
       "headTitle": "Mas’ul rahbar",
-      "photo": "/uploads/portraits/ARZIXODJAYEV AKROMXON MUNAVVAROVICH.jpg",
+      "photo": "/uploads/portraits/111.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.731Z",
       "updatedAt": "2026-10-18T07:06:08.731Z",
@@ -144,7 +144,7 @@
       "name": "Generatsiya bosh boshqarmasi",
       "headName": "SALIMYOROV G‘OLIB SUR’ATOVICH",
       "headTitle": "Mas’ul rahbar",
-      "photo": "/uploads/portraits/SALIMYOROV G'OLIB SUR'ATOVICH.jpg",
+      "photo": "/uploads/portraits/112.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.731Z",
       "updatedAt": "2026-10-18T07:06:08.731Z",
@@ -166,7 +166,7 @@
       "name": "Xavfsizlik va maxsus ishlar boshqarmasi",
       "headName": "TASHXODJAYEV IBRAT ALISHEROVICH",
       "headTitle": "Mas’ul rahbar",
-      "photo": "/uploads/portraits/TOSHXODJAYEV IBRAT ALISHEROVICH.jpg",
+      "photo": "/uploads/portraits/114.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.731Z",
       "updatedAt": "2026-10-18T07:06:08.731Z",
@@ -199,7 +199,7 @@
       "name": "Ijro intizomi nazorati bo‘limi",
       "headName": "G‘ANIXO‘JAYEV JAMOLIDDIN VORIS O‘G‘LI",
       "headTitle": "Mas’ul rahbar",
-      "photo": "/uploads/portraits/G'ANIXO'JAYEV JAMOLIDDIN VORIS O'G'LI.jpg",
+      "photo": "/uploads/portraits/117.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.731Z",
       "updatedAt": "2026-10-18T07:06:08.731Z",
@@ -243,7 +243,7 @@
       "name": "Mustahkamlik va xavfsizlik texnikasi bo‘limi",
       "headName": "UMIROV BAXROMJON MAMATALIYEVICH",
       "headTitle": "Mas’ul rahbar",
-      "photo": "",
+      "photo": "/uploads/portraits/121.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.732Z",
       "updatedAt": "2026-10-18T10:30:38.002Z",
@@ -265,7 +265,7 @@
       "name": "YURIDIK BO‘LIM",
       "headName": "NASIROV MARIP MAXSUDOVICH",
       "headTitle": "Mas’ul rahbar",
-      "photo": "/uploads/portraits/NASIROV MARIP MAXSUDOVICH.jpg",
+      "photo": "/uploads/portraits/123.jpg",
       "status": "active",
       "createdAt": "2026-10-18T07:06:08.733Z",
       "updatedAt": "2026-10-18T07:06:08.733Z",
@@ -298,10 +298,10 @@
       "deadline": "2026-09-20",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 28,
+      "delayDays": 29,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.306Z",
-      "updatedAt": "2026-10-18T10:31:03.306Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "ae3b68a9-90b0-4bbf-a0a1-e302e4efff64",
@@ -317,10 +317,10 @@
       "deadline": "2026-09-30",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 18,
+      "delayDays": 19,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.306Z",
-      "updatedAt": "2026-10-18T10:31:03.306Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "b28dc575-48c9-407d-b6f6-d69cb78f40ed",
@@ -336,10 +336,10 @@
       "deadline": "2026-08-31",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 48,
+      "delayDays": 49,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.306Z",
-      "updatedAt": "2026-10-18T10:31:03.306Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "1328b33a-ed69-4788-9108-3ed108d8564a",
@@ -355,10 +355,10 @@
       "deadline": "2026-06-30",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 110,
+      "delayDays": 111,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.306Z",
-      "updatedAt": "2026-10-18T10:31:03.306Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "d18da56f-fb66-4e8d-b4aa-2cf1555aafd2",
@@ -374,10 +374,10 @@
       "deadline": "2026-10-11",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 7,
+      "delayDays": 8,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.306Z",
-      "updatedAt": "2026-10-18T10:31:03.307Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "95310964-2348-445f-ac67-fd81cc7c1667",
@@ -393,10 +393,10 @@
       "deadline": "2025-10-19",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 364,
+      "delayDays": 365,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.307Z",
-      "updatedAt": "2026-10-18T10:31:03.307Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "509ef08f-deff-4197-8285-ba9da5388fd3",
@@ -545,10 +545,10 @@
       "deadline": "2026-10-15",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 3,
+      "delayDays": 4,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.307Z",
-      "updatedAt": "2026-10-18T10:31:03.307Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "eb743862-b788-4753-ac00-c98e1c91b73f",
@@ -716,10 +716,10 @@
       "deadline": "2026-10-15",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 3,
+      "delayDays": 4,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.308Z",
-      "updatedAt": "2026-10-18T10:31:03.308Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "51783680-28ce-4dfc-864a-e76a6b6a85be",
@@ -1400,10 +1400,10 @@
       "deadline": "2026-03-01",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 231,
+      "delayDays": 232,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.309Z",
-      "updatedAt": "2026-10-18T10:31:03.309Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "8d37bfb3-4988-476b-8468-70337a7103b4",
@@ -1419,10 +1419,10 @@
       "deadline": "2025-12-25",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 297,
+      "delayDays": 298,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.309Z",
-      "updatedAt": "2026-10-18T10:31:03.309Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "be003b9f-192d-4d00-80ea-43e18662e412",
@@ -2008,10 +2008,10 @@
       "deadline": "2024-04-05",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 926,
+      "delayDays": 927,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.310Z",
-      "updatedAt": "2026-10-18T10:31:03.310Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "1a3f895e-11e3-4f0d-9122-566444ab20c7",
@@ -2027,10 +2027,10 @@
       "deadline": "2022-07-05",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 1566,
+      "delayDays": 1567,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.310Z",
-      "updatedAt": "2026-10-18T10:31:03.310Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "14d7656e-11d2-4c2b-86c8-fa70174ece05",
@@ -2046,10 +2046,10 @@
       "deadline": "2025-10-05",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 378,
+      "delayDays": 379,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.310Z",
-      "updatedAt": "2026-10-18T10:31:03.310Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "b080e184-132f-442e-bbf2-ed764948629e",
@@ -2065,10 +2065,10 @@
       "deadline": "2024-01-05",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 1017,
+      "delayDays": 1018,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.310Z",
-      "updatedAt": "2026-10-18T10:31:03.310Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "8e819e3a-1cc8-434a-86b0-c55cd50c1d92",
@@ -2084,10 +2084,10 @@
       "deadline": "2025-04-05",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 561,
+      "delayDays": 562,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.310Z",
-      "updatedAt": "2026-10-18T10:31:03.310Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "a84889b3-7c1e-4e76-a698-35c13cc1c1f9",
@@ -2103,10 +2103,10 @@
       "deadline": "2025-07-05",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 470,
+      "delayDays": 471,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.310Z",
-      "updatedAt": "2026-10-18T10:31:03.310Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "0f815a0d-0a6f-40cc-bf29-b50b9f2994b7",
@@ -2559,10 +2559,10 @@
       "deadline": "2024-01-10",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 1012,
+      "delayDays": 1013,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.311Z",
-      "updatedAt": "2026-10-18T10:31:03.311Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "faf7f2e9-498f-42d8-968b-277e3968b51d",
@@ -2673,10 +2673,10 @@
       "deadline": "2024-12-25",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 662,
+      "delayDays": 663,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.312Z",
-      "updatedAt": "2026-10-18T10:31:03.312Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "1310c4bd-6345-41ed-8774-33e1f1be2a31",
@@ -3452,10 +3452,10 @@
       "deadline": "2025-12-01",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 321,
+      "delayDays": 322,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.314Z",
-      "updatedAt": "2026-10-18T10:31:03.314Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "438c1cc3-8fe0-401e-ad33-edf4c32d4043",
@@ -3946,10 +3946,10 @@
       "deadline": "2025-10-15",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 368,
+      "delayDays": 369,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.315Z",
-      "updatedAt": "2026-10-18T10:31:03.315Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "0fed7b8a-4dc3-472d-9567-d533aad6a173",
@@ -3965,10 +3965,10 @@
       "deadline": "2025-10-15",
       "status": "overdue",
       "completedDate": null,
-      "delayDays": 368,
+      "delayDays": 369,
       "notes": "",
       "createdAt": "2026-10-18T10:31:03.315Z",
-      "updatedAt": "2026-10-18T10:31:03.315Z"
+      "updatedAt": "2026-10-19T05:55:43.504Z"
     },
     {
       "id": "817e9ca7-c865-4ab1-b649-618f6aec7110",
@@ -5270,6 +5270,6 @@
     "logoUrl": "/images/ies_logo.svg",
     "tppLogoUrl": "/images/ies_logo.svg",
     "autoRefreshInterval": 60,
-    "lastUpdated": "2026-10-18T10:55:56.083Z"
+    "lastUpdated": "2026-10-19T05:55:43.508Z"
   }
 }

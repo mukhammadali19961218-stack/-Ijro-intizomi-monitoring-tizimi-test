@@ -30,11 +30,11 @@ function parseDateComponents(dateVal) {
       }
     }
   }
-  const dmY = str.match(/^(\d{1,2})[\.\/-](\d{1,2})[\.\/-](\d{4})/);
+  const dmY = str.match(/(\d{1,2})\s*[\.\/-]\s*(\d{1,2})\s*[\.\/-]\s*(\d{4})/);
   if (dmY) {
     return new Date(parseInt(dmY[3], 10), parseInt(dmY[2], 10) - 1, parseInt(dmY[1], 10));
   }
-  const Ymd = str.match(/^(\d{4})[\.\/-](\d{1,2})[\.\/-](\d{1,2})/);
+  const Ymd = str.match(/(\d{4})\s*[\.\/-]\s*(\d{1,2})\s*[\.\/-]\s*(\d{1,2})/);
   if (Ymd) {
     return new Date(parseInt(Ymd[1], 10), parseInt(Ymd[2], 10) - 1, parseInt(Ymd[3], 10));
   }
@@ -130,6 +130,7 @@ function computeTaskStatus(task, baseDate = new Date()) {
 
 class Database {
   constructor() {
+    this.lastLoadedMtime = 0;
     this.data = {
       users: [],
       departments: [],
@@ -147,45 +148,41 @@ class Database {
     this.load();
   }
 
+  ensureFreshData() {
+    try {
+      if (fs.existsSync(DB_FILE)) {
+        const stat = fs.statSync(DB_FILE);
+        if (!this.lastLoadedMtime || stat.mtimeMs > this.lastLoadedMtime) {
+          this.load();
+        }
+      }
+    } catch (_) {}
+  }
+
   load() {
     try {
-      const tmpFile = path.join(require('os').tmpdir(), 'ijro_database.json');
       let loaded = false;
 
-      // In serverless / multi-instance fallback, check if tmp file has newer data
-      if (fs.existsSync(tmpFile)) {
-        try {
+      if (fs.existsSync(DB_FILE)) {
+        const raw = fs.readFileSync(DB_FILE, 'utf8');
+        this.data = JSON.parse(raw);
+        this.lastLoadedMtime = fs.statSync(DB_FILE).mtimeMs;
+        loaded = true;
+      } else {
+        // Fallback check in temp dir
+        const tmpFile = path.join(require('os').tmpdir(), 'ijro_database.json');
+        if (fs.existsSync(tmpFile)) {
           const rawTmp = fs.readFileSync(tmpFile, 'utf8');
-          const dataTmp = JSON.parse(rawTmp);
-          if (dataTmp && Array.isArray(dataTmp.tasks)) {
-            if (fs.existsSync(DB_FILE)) {
-              const rawPrimary = fs.readFileSync(DB_FILE, 'utf8');
-              const dataPrimary = JSON.parse(rawPrimary);
-              const tmpTime = new Date((dataTmp.settings && dataTmp.settings.lastUpdated) || 0).getTime();
-              const primaryTime = new Date((dataPrimary.settings && dataPrimary.settings.lastUpdated) || 0).getTime();
-              if (tmpTime >= primaryTime) {
-                this.data = dataTmp;
-                loaded = true;
-              }
-            } else {
-              this.data = dataTmp;
-              loaded = true;
-            }
-          }
-        } catch (_) {}
+          this.data = JSON.parse(rawTmp);
+          loaded = true;
+        }
       }
 
       if (!loaded) {
-        if (fs.existsSync(DB_FILE)) {
-          const raw = fs.readFileSync(DB_FILE, 'utf8');
-          this.data = JSON.parse(raw);
-          loaded = true;
-        } else {
-          console.log('Database file not found, initializing empty structure...');
-          this.seedInitialData();
-          this.save();
-          loaded = true;
-        }
+        console.log('Database file not found, initializing empty structure...');
+        this.seedInitialData();
+        this.save();
+        loaded = true;
       }
 
       // Ensure sequential leaderId on all departments
@@ -216,6 +213,7 @@ class Database {
   }
 
   getNextLeaderId() {
+    this.ensureFreshData();
     let maxId = 100;
     if (this.data && Array.isArray(this.data.departments)) {
       this.data.departments.forEach(d => {
@@ -236,6 +234,7 @@ class Database {
         const dir = path.dirname(DB_FILE);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(DB_FILE, content, 'utf8');
+        this.lastLoadedMtime = fs.statSync(DB_FILE).mtimeMs;
       } catch (errPrimary) {
         console.warn('Primary DB_FILE write failed (read-only filesystem or locked):', errPrimary.message);
       }
@@ -283,6 +282,7 @@ class Database {
   }
 
   syncTasksStatus(saveIfChanged = true) {
+    this.ensureFreshData();
     let changed = false;
     const now = new Date();
 
@@ -306,6 +306,7 @@ class Database {
 
   // --- Statistics Calculation Methods ---
   getStats() {
+    this.ensureFreshData();
     this.syncTasksStatus(true);
 
     let totalTasks = this.data.tasks.length;
@@ -333,6 +334,7 @@ class Database {
   }
 
   getDepartmentOverdueStats(page = 1, pageSize = 3, onlyOverdue = true) {
+    this.ensureFreshData();
     this.syncTasksStatus(true);
 
     // Compute stats per department

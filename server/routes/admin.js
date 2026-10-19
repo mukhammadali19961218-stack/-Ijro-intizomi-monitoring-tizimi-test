@@ -10,7 +10,7 @@ const { db, parseTaskDate, calculateDelayDays, determineStatus, parseDateCompone
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
 // Helper to save portrait (supports local disk or serverless Base64 fallback)
-function savePortraitFile(file) {
+function savePortraitFile(file, leaderId = null) {
   if (!file || !file.buffer) return '';
   try {
     const dir = path.join(__dirname, '..', '..', 'public', 'uploads', 'portraits');
@@ -19,10 +19,81 @@ function savePortraitFile(file) {
     const safeName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_\-\u0400-\u04FF]/g, '_');
     const filename = `${safeName}_${Date.now()}${ext}`;
     fs.writeFileSync(path.join(dir, filename), file.buffer);
+    if (leaderId) {
+      try {
+        fs.writeFileSync(path.join(dir, `${leaderId}${ext}`), file.buffer);
+      } catch (_) {}
+    }
     return `/uploads/portraits/${filename}`;
   } catch (err) {
     // In serverless / read-only filesystem environments (e.g. Vercel), save as Base64 Data URL
     return `data:${file.mimetype || 'image/jpeg'};base64,${file.buffer.toString('base64')}`;
+  }
+}
+
+// Strict Leader ID & Full Name photo matcher - NEVER matches on single words!
+function findPhotoForLeader(leaderId, headName) {
+  try {
+    const portraitsDir = path.join(__dirname, '..', '..', 'public', 'uploads', 'portraits');
+    if (!fs.existsSync(portraitsDir)) return '';
+    const availablePhotos = fs.readdirSync(portraitsDir);
+
+    const cleanId = leaderId ? String(leaderId).trim().replace(/^#/, '') : '';
+
+    // 1. Exact ID match (e.g. "101.jpg", "101.png", "101.webp", "101.jpeg")
+    if (cleanId) {
+      const exactIdMatch = availablePhotos.find(f => {
+        const ext = path.extname(f).toLowerCase();
+        const base = path.basename(f, ext);
+        return base.toLowerCase() === cleanId.toLowerCase() &&
+          ['.jpg', '.jpeg', '.png', '.webp', '.svg'].includes(ext);
+      });
+      if (exactIdMatch) {
+        return `/uploads/portraits/${exactIdMatch}`;
+      }
+
+      // 2. ID prefix match (e.g. "101_*.jpg", "101-*.jpg", "101 *.jpg")
+      const prefixMatch = availablePhotos.find(f => {
+        const ext = path.extname(f).toLowerCase();
+        const base = path.basename(f, ext).toLowerCase();
+        const cLower = cleanId.toLowerCase();
+        return (base.startsWith(`${cLower}_`) || base.startsWith(`${cLower}-`) || base.startsWith(`${cLower} `)) &&
+          ['.jpg', '.jpeg', '.png', '.webp', '.svg'].includes(ext);
+      });
+      if (prefixMatch) {
+        return `/uploads/portraits/${prefixMatch}`;
+      }
+
+      // 3. Existing department photo configured in database for this specific leaderId
+      const existingDept = db.data.departments.find(d => String(d.leaderId) === cleanId);
+      if (existingDept && existingDept.photo) {
+        return existingDept.photo;
+      }
+    }
+
+    // 4. Strict Full Name Match (All major words of full name must match filename)
+    // NEVER match single words like "Alisher" or "Muzaffar" to avoid cross-person assignment!
+    if (headName && headName.trim().length >= 6) {
+      const normHead = headName.trim().toLowerCase().replace(/['`’‘]/g, '').replace(/\s+/g, ' ');
+      const headWords = normHead.split(' ').filter(w => w.length >= 3);
+      if (headWords.length >= 2) {
+        const exactNameMatch = availablePhotos.find(f => {
+          const ext = path.extname(f).toLowerCase();
+          const base = path.basename(f, ext);
+          if (/^\d+$/.test(base)) return false; // Ignore numeric ID files
+          const normF = base.toLowerCase().replace(/['`’‘]/g, '').replace(/\s+/g, ' ');
+          return headWords.every(hw => normF.includes(hw));
+        });
+        if (exactNameMatch) {
+          return `/uploads/portraits/${exactNameMatch}`;
+        }
+      }
+    }
+
+    return '';
+  } catch (err) {
+    console.error('Error finding photo for leader:', err.message);
+    return '';
   }
 }
 
@@ -252,189 +323,199 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
   }
 
   try {
-    // Mode defaults to 'replace' so new Excel data completely replaces old data
-    const queryMode = req.query.mode ? String(req.query.mode).toLowerCase() : null;
-    const bodyMode = req.body && req.body.mode ? String(req.body.mode).toLowerCase() : null;
-    const importMode = queryMode || bodyMode || 'replace';
-
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
-    
-    // Choose appropriate sheet
-    let sheetName = wb.SheetNames[0];
+    if (!wb.SheetNames || wb.SheetNames.length === 0) {
+      return res.status(400).json({ error: 'Excel faylida varaqlar (sheet) topilmadi.' });
+    }
+
+    // 1. Pick the best sheet: look for sheets containing tasks keywords, or pick the one with most rows
+    let selectedSheetName = wb.SheetNames[0];
     const preferredSheet = wb.SheetNames.find(s => {
       const lower = s.toLowerCase();
       return lower.includes('топшириқ') || lower.includes('topshiriq') || lower.includes('ijro') || lower.includes('jadval');
     });
-    if (preferredSheet) sheetName = preferredSheet;
-
-    const sheet = wb.Sheets[sheetName];
-    let rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-    // Handle merged title rows / header offset if keys are mostly __EMPTY
-    if (rawRows.length > 1) {
-      const firstRowKeys = Object.keys(rawRows[0]);
-      const emptyKeyCount = firstRowKeys.filter(k => k.startsWith('__EMPTY')).length;
-      if (emptyKeyCount >= 3) {
-        for (let r = 0; r < Math.min(rawRows.length, 6); r++) {
-          const rowVals = Object.values(rawRows[r]).map(v => String(v).toLowerCase());
-          const hasHeaderKeywords = rowVals.some(v => 
-            v.includes('topshiriq') || v.includes('boshqarma') || v.includes('ijro') || 
-            v.includes('muddati') || v.includes('№') || v.includes('rahbar') || v.includes('hujjat')
-          );
-          if (hasHeaderKeywords) {
-            rawRows = XLSX.utils.sheet_to_json(sheet, { range: r + 1, defval: '' });
-            break;
+    if (preferredSheet) {
+      selectedSheetName = preferredSheet;
+    } else {
+      // Find sheet with the largest data range
+      let maxRows = 0;
+      for (const sName of wb.SheetNames) {
+        const s = wb.Sheets[sName];
+        if (s && s['!ref']) {
+          const range = XLSX.utils.decode_range(s['!ref']);
+          const rowCount = range.e.r - range.s.r + 1;
+          if (rowCount > maxRows) {
+            maxRows = rowCount;
+            selectedSheetName = sName;
           }
         }
       }
     }
 
-    if (!rawRows || rawRows.length === 0) {
+    const sheet = wb.Sheets[selectedSheetName];
+    if (!sheet || !sheet['!ref']) {
+      return res.status(400).json({ error: 'Tanlangan varaq bo‘sh yoki yaroqsiz.' });
+    }
+
+    // 2. Read sheet as 2D array of rows to locate the real header row
+    const rawMatrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (!rawMatrix || rawMatrix.length === 0) {
       return res.status(400).json({ error: 'Excel faylida ma’lumot topilmadi.' });
     }
 
-    const portraitsDir = path.join(__dirname, '..', '..', 'public', 'uploads', 'portraits');
-    const availablePhotos = fs.existsSync(portraitsDir)
-      ? fs.readdirSync(portraitsDir)
-      : [];
+    const headerKeywords = [
+      'topshiriq', 'топшириқ', 'boshqarma', 'бошқарма', 'ijro', 'ижро',
+      'muddat', 'муддат', 'rahbar', 'раҳбар', 'hujjat', 'ҳужжат', 't/r', '№',
+      'id', 'fish', 'фиш', 'masul', 'mas’ul', 'mas\'ul', 'масъул', 'xodim', 'ходим', 'hodim'
+    ];
 
-    // Ensure departments lookup
-    const deptMapByName = new Map();
+    let headerRowIndex = 0;
+    let maxKeywordMatches = 0;
+
+    for (let r = 0; r < Math.min(rawMatrix.length, 15); r++) {
+      const row = rawMatrix[r];
+      if (!Array.isArray(row)) continue;
+      const joined = row.map(cell => String(cell || '').toLowerCase()).join(' ');
+      let matches = 0;
+      for (const kw of headerKeywords) {
+        if (joined.includes(kw)) matches++;
+      }
+      if (matches > maxKeywordMatches && matches >= 2) {
+        maxKeywordMatches = matches;
+        headerRowIndex = r;
+      }
+    }
+
+    // Parse rows using the detected header row
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { range: headerRowIndex, defval: '' });
+    if (!rawRows || rawRows.length === 0) {
+      return res.status(400).json({ error: 'Excel faylidan topshiriqlar qatorlari topilmadi.' });
+    }
+
+    // Helper to get normalized value by flexible column aliases
+    function getColValue(row, aliases) {
+      const rowKeys = Object.keys(row);
+      for (const alias of aliases) {
+        const normAlias = alias.toLowerCase().replace(/['`’‘]/g, '').trim();
+        const foundKey = rowKeys.find(k => {
+          const normKey = k.toLowerCase().replace(/['`’‘]/g, '').trim();
+          return normKey === normAlias;
+        });
+        if (foundKey && String(row[foundKey]).trim() !== '') {
+          return String(row[foundKey]).trim();
+        }
+      }
+      return '';
+    }
+
+    // Departments lookup maps
     const deptMapById = new Map();
+    const deptMapByName = new Map();
     db.data.departments.forEach(d => {
-      deptMapByName.set(d.name.toLowerCase().replace(/['`’]/g, ''), d);
-      if (d.leaderId) deptMapById.set(String(d.leaderId), d);
+      if (d.leaderId) deptMapById.set(String(d.leaderId).trim(), d);
+      deptMapByName.set(d.name.toLowerCase().replace(/['`’‘]/g, '').trim(), d);
     });
 
     const newTasks = [];
     let addedDeptsCount = 0;
 
     rawRows.forEach((row, idx) => {
-      // 1. Flexible column keys for Leader/Department ID
-      const rawLeaderId = String(
-        row['Rahbar ID'] ||
-        row['Rahbar ID raqami'] ||
-        row['Mas’ul ID'] ||
-        row['Mas\'ul ID'] ||
-        row['Boshqarma ID'] ||
-        row['Xodim ID'] ||
-        row['Hodim ID'] ||
-        row['Tabel raqami'] ||
-        row['ID raqam'] ||
-        row['ID'] ||
-        ''
-      ).trim().replace(/^#/, '');
+      // 1. Leader / Employee ID
+      const rawLeaderId = getColValue(row, [
+        'Rahbar ID', 'Rahbar ID raqami', 'Rahbar IDsi', 'Rahbar_ID', 'Leader ID', 'Leader_ID', 'LeaderID',
+        'Mas’ul ID', 'Mas\'ul ID', 'Masul ID', 'Xodim ID', 'Hodim ID', 'Xodim ID raqami', 'Hodim ID raqami',
+        'Tabel raqami', 'Tabel', 'ID raqam', 'ID raqami', 'Xodim_ID', 'Hodim_ID', 'ID'
+      ]).replace(/^#/, '');
 
-      const deptName = String(
-        row['Mas’ul boshqarma'] ||
-        row['Mas\'ul boshqarma'] ||
-        row['Boshqarma nomi'] ||
-        row['Boshqarma'] ||
-        row['Bo‘lim'] ||
-        row['Lavozimi'] ||
-        row['Tashkilot'] ||
-        ''
-      ).trim();
+      // 2. Department name
+      const deptName = getColValue(row, [
+        'Mas’ul boshqarma', 'Mas\'ul boshqarma', 'Masul boshqarma', 'Boshqarma nomi', 'Boshqarma',
+        'Bo‘lim', 'Bo\'lim', 'Bolim', 'Boshqarma / Bo‘lim', 'Tashkilot', 'Tarkibiy tuzilma', 'Lavozimi'
+      ]);
 
-      const headName = String(
-        row['Mas’ul ijrochi'] ||
-        row['Mas\'ul ijrochi'] ||
-        row['Ma\'sul xodim'] ||
-        row['Mas’ul xodim'] ||
-        row['Mas\'ul'] ||
-        row['Ijrochi'] ||
-        row['F.I.SH'] ||
-        row['FISH'] ||
-        row['F.I.O'] ||
-        row['FIO'] ||
-        ''
-      ).trim();
+      // 3. Responsible person / Head name
+      const headName = getColValue(row, [
+        'Mas’ul ijrochi', 'Mas\'ul ijrochi', 'Masul ijrochi', 'Mas’ul rahbar', 'Mas\'ul rahbar',
+        'Mas’ul xodim', 'Mas\'ul xodim', 'Masul xodim', 'Ijrochi', 'Mas’ul', 'Mas\'ul', 'Masul',
+        'Rahbar', 'Rahbar F.I.SH', 'F.I.SH.', 'F.I.SH', 'FISH', 'F.I.O.', 'F.I.O', 'FIO',
+        'Xodim F.I.SH', 'Hodim F.I.SH', 'Xodim', 'Hodim'
+      ]);
 
-      // If all critical fields are empty, skip row
-      if (!rawLeaderId && (!deptName || deptName === '-') && !headName) return;
+      // 4. Task title / content
+      const title = getColValue(row, [
+        'Topshiriq mazmuni', 'Topshiriq matni', 'Topshiriq', 'Mazmuni', 'Ijro mazmuni',
+        'Hujjat raqami va sanasi', 'Hujjat raqami', 'Topshiriq qisqacha mazmuni'
+      ]);
 
+      // If all critical fields are empty, skip empty row
+      if (!rawLeaderId && (!deptName || deptName === '-') && !headName && !title) return;
+
+      // 5. Task Number / ID
+      let taskNumber = getColValue(row, [
+        'Topshiriq ID', 'Topshiriq raqami', 'Topshiriq №', '№', 'T/r', 'T/r.', 'T/r ', 'TR', 'Tartib raqam', 'Raqami'
+      ]);
+      if (!taskNumber) taskNumber = `№${idx + 1}`;
+
+      // 6. Deadline
+      const rawDate = getColValue(row, [
+        'Ijro muddati', 'Topshiriq muddati', 'Muddati', 'Muddat', 'Belgilangan muddat',
+        'Ijro sanasi', 'Sana', 'Yakunlash sanasi', 'Berilgan sana'
+      ]);
+      const deadline = parseTaskDate(rawDate) || new Date().toISOString().split('T')[0];
+
+      // 7. Status
+      const rawStatus = getColValue(row, ['Holati', 'Holat', 'Status', 'Ijro holati', 'Natija']);
+      const initialStatus = determineStatus(rawStatus, deadline);
+      const initialDelayDays = calculateDelayDays(deadline);
+
+      const candidateTask = {
+        deadline,
+        status: initialStatus,
+        delayDays: initialStatus === 'overdue' ? (initialDelayDays || 1) : 0,
+        completedDate: initialStatus === 'completed' ? new Date().toISOString() : null
+      };
+      const computed = computeTaskStatus(candidateTask);
+
+      // 8. Document & Task type, Notes
+      const docType = getColValue(row, ['Hujjat turi', 'Turi', 'Hujjat']) || 'Hujjat';
+      const taskType = getColValue(row, ['Topshiriq turi', 'Topshiriq yo‘nalishi', 'Topshiriq toifasi']) || 'Ijro topshirig‘i';
+      const notes = getColValue(row, ['Izoh', 'Qayd', 'Izohlar', 'Eslatma']);
+
+      // 9. Department and Leader Resolution - STRICTLY BY ID!
       let dept = null;
 
-      // Match Strategy 1: Find by explicit leaderId (or id)
       if (rawLeaderId) {
-        dept = deptMapById.get(rawLeaderId) || db.data.departments.find(d => 
-          String(d.leaderId) === rawLeaderId || 
-          String(d.id) === rawLeaderId ||
-          (d.leaderId && String(d.leaderId).toLowerCase() === rawLeaderId.toLowerCase())
-        );
-        // Also support 1-based index (e.g. 1 -> 101)
-        if (!dept && /^\d+$/.test(rawLeaderId)) {
-          const num = parseInt(rawLeaderId, 10);
-          if (num < 100) {
-            dept = deptMapById.get(String(num + 100)) || db.data.departments.find(d => String(d.leaderId) === String(num + 100));
-          }
-        }
+        dept = deptMapById.get(rawLeaderId) || db.data.departments.find(d => String(d.leaderId) === rawLeaderId);
       }
 
-      // Match Strategy 2: If no ID found, check if deptName or headName begins with numeric ID
-      if (!dept && deptName) {
-        const numMatch = deptName.match(/^#?(\d+)/);
-        if (numMatch) {
-          const extractedId = numMatch[1];
-          dept = deptMapById.get(extractedId) || db.data.departments.find(d => 
-            String(d.leaderId) === extractedId || 
-            String(d.leaderId) === String(parseInt(extractedId, 10) + 100)
-          );
-        }
+      if (!dept && deptName && deptName !== '-') {
+        const normDName = deptName.toLowerCase().replace(/['`’‘]/g, '').trim();
+        dept = deptMapByName.get(normDName);
       }
 
-      // Match Strategy 3: Match by Department Name
-      if (!dept && deptName) {
-        const deptKey = deptName.toLowerCase().replace(/['`’]/g, '');
-        dept = deptMapByName.get(deptKey);
-      }
-
-      // Match Strategy 4: Match by Head Name
-      if (!dept && headName) {
-        const normHead = headName.toLowerCase().replace(/['`’]/g, '');
-        dept = db.data.departments.find(d => d.headName && d.headName.toLowerCase().replace(/['`’]/g, '') === normHead);
-      }
-
-      // If department was found, keep its name and headName up to date from Excel
       if (dept) {
+        // Update department information from current Excel
         if (deptName && deptName !== '-' && (!dept.name || dept.name.startsWith('Boshqarma #') || dept.name !== deptName)) {
           dept.name = deptName;
-          deptMapByName.set(dept.name.toLowerCase().replace(/['`’]/g, ''), dept);
+          deptMapByName.set(dept.name.toLowerCase().replace(/['`’‘]/g, '').trim(), dept);
         }
-        if (headName && (!dept.headName || dept.headName === 'Mas’ul rahbar' || dept.headName === 'Mas’ul xodim' || dept.headName !== headName)) {
+        if (headName && (!dept.headName || dept.headName === 'Mas’ul rahbar' || dept.headName !== headName)) {
           dept.headName = headName;
         }
-        // Match photo if empty
-        if (!dept.photo && headName) {
-          const normHead = headName.toLowerCase().replace(/['`’]/g, '');
-          const headParts = normHead.split(/\s+/).filter(p => p.length >= 4);
-          const found = availablePhotos.find(f => {
-            const normF = f.toLowerCase().replace(/['`’]/g, '');
-            return headParts.some(hp => normF.includes(hp));
-          });
-          if (found) dept.photo = `/uploads/portraits/${found}`;
+        // Strict photo check: strictly for this department's ID / full name
+        const matchedPhoto = findPhotoForLeader(dept.leaderId, dept.headName);
+        if (matchedPhoto) {
+          dept.photo = matchedPhoto;
         }
-      }
-
-      // Strategy 5: If not found, auto-create department with new leaderId!
-      if (!dept) {
-        let matchedPhoto = '';
-        if (headName) {
-          const normHead = headName.toLowerCase().replace(/['`’]/g, '');
-          const headParts = normHead.split(/\s+/).filter(p => p.length >= 4);
-          const found = availablePhotos.find(f => {
-            const normF = f.toLowerCase().replace(/['`’]/g, '');
-            return headParts.some(hp => normF.includes(hp));
-          });
-          if (found) matchedPhoto = `/uploads/portraits/${found}`;
-        }
-
-        const autoLeaderId = rawLeaderId && /^\d+$/.test(rawLeaderId)
+      } else {
+        // Auto-create department
+        let autoLeaderId = rawLeaderId && /^\d+$/.test(rawLeaderId)
           ? parseInt(rawLeaderId, 10)
           : db.getNextLeaderId();
 
         const resolvedDeptName = deptName && deptName !== '-' ? deptName : `Boshqarma #${autoLeaderId}`;
         const resolvedHeadName = headName || 'Mas’ul rahbar';
+        const matchedPhoto = findPhotoForLeader(autoLeaderId, resolvedHeadName);
 
         dept = {
           id: crypto.randomUUID(),
@@ -448,61 +529,24 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
           updatedAt: new Date().toISOString()
         };
         db.data.departments.push(dept);
-        deptMapByName.set(dept.name.toLowerCase().replace(/['`’]/g, ''), dept);
         deptMapById.set(String(dept.leaderId), dept);
+        deptMapByName.set(dept.name.toLowerCase().replace(/['`’‘]/g, '').trim(), dept);
         addedDeptsCount++;
       }
 
-      const rawDate = row['Ijro muddati'] || row['Topshiriq muddati'] || row['Muddati'] || row['Muddat'] || row['Sana'] || row['Ijro sanasi'] || row['Berilgan sana'];
-      const deadline = parseTaskDate(rawDate);
-      const rawStatus = row['Holati'] || row['Holat'] || row['Status'] || '';
-      const initialStatus = determineStatus(rawStatus, deadline);
-      const initialDelayDays = calculateDelayDays(deadline);
-
-      const candidateTask = {
-        deadline,
-        status: initialStatus,
-        delayDays: initialStatus === 'overdue' ? (initialDelayDays || 1) : 0,
-        completedDate: initialStatus === 'completed' ? new Date().toISOString() : null
-      };
-      const computed = computeTaskStatus(candidateTask);
-
-      const title = String(
-        row['Topshiriq mazmuni'] ||
-        row['Topshiriq'] ||
-        row['Mazmuni'] ||
-        row['Hujjat raqami va sanasi'] ||
-        row['Hujjat raqami'] ||
-        row['Topshiriq matni'] ||
-        `Topshiriq #${idx + 1}`
-      ).trim();
-
-      const taskNumber = String(
-        row['Topshiriq ID'] ||
-        row['№'] ||
-        row['T/r'] ||
-        row['T/R'] ||
-        row['Id'] ||
-        row['ID'] ||
-        `№${idx + 1}`
-      ).trim();
-
-      const docType = String(row['Hujjat turi'] || row['Turi'] || 'Hujjat').trim();
-      const taskType = String(row['Topshiriq turi'] || 'Ijro topshirig‘i').trim();
-      const notes = String(row['Izoh'] || '').trim();
-
+      // Add to newTasks list
       newTasks.push({
         id: crypto.randomUUID(),
         taskNumber,
         leaderId: dept.leaderId,
-        docNumberAndDate: title,
+        docNumberAndDate: title || taskNumber,
         docType,
         taskType,
-        title,
+        title: title || `Topshiriq #${idx + 1}`,
         departmentId: dept.id,
         departmentName: dept.name,
         responsiblePerson: headName || dept.headName,
-        deadline: deadline || new Date().toISOString().split('T')[0],
+        deadline,
         status: computed.status,
         completedDate: computed.status === 'completed' ? new Date().toISOString() : null,
         delayDays: computed.delayDays,
@@ -513,19 +557,14 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
     });
 
     if (newTasks.length === 0) {
-      return res.status(400).json({ error: 'Excel faylidan topshiriqlar o‘qib bo‘lmadi. Ustunlar nomini tekshiring.' });
+      return res.status(400).json({ error: 'Excel faylidan birorta ham topshiriq o‘qib bo‘lmadi. Ustunlar nomini tekshiring.' });
     }
 
-    if (importMode === 'replace') {
-      db.data.tasks = newTasks;
-      // Retain only departments that are referenced in the new tasks,
-      // completely removing obsolete departments and their old overdue counts!
-      const referencedDeptIds = new Set(newTasks.map(t => t.departmentId));
-      db.data.departments = db.data.departments.filter(d => referencedDeptIds.has(d.id));
-    } else {
-      db.data.tasks = [...newTasks, ...db.data.tasks];
-    }
+    // MANDATORY REQUIREMENT 1:
+    // Completely wipe old tasks and replace with ONLY the new import!
+    db.data.tasks = newTasks;
 
+    // Recalculate all task statuses according to deadlines
     db.syncTasksStatus(true);
     db.save();
 
@@ -534,10 +573,11 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
       importedCount: newTasks.length,
       addedDeptsCount,
       totalTasks: db.data.tasks.length,
-      message: `Muvaffaqiyatli import qilindi: ${newTasks.length} ta topshiriq.`
+      message: `Muvaffaqiyatli import qilindi: ${newTasks.length} ta topshiriq. Eski ma’lumotlar avtomatik tozalandi.`
     });
   } catch (err) {
-    res.status(500).json({ error: 'Excel faylini o‘qishda xatolik: ' + err.message });
+    console.error('Import excel error:', err);
+    res.status(500).json({ error: 'Excel faylini import qilishda xatolik: ' + err.message });
   }
 });
 
@@ -711,14 +751,14 @@ router.post('/departments', handlePortraitUpload, (req, res) => {
       return res.status(400).json({ error: 'Boshqarma nomi va rahbar ismi kiritilishi shart.' });
     }
 
-    let photoUrl = '';
-    if (req.file) {
-      photoUrl = savePortraitFile(req.file);
-    }
-
     let assignedLeaderId = parseInt(leaderId, 10);
     if (isNaN(assignedLeaderId) || assignedLeaderId <= 0) {
       assignedLeaderId = db.getNextLeaderId();
+    }
+
+    let photoUrl = '';
+    if (req.file) {
+      photoUrl = savePortraitFile(req.file, assignedLeaderId);
     }
 
     const newDept = {
@@ -751,18 +791,18 @@ router.put('/departments/:id', handlePortraitUpload, (req, res) => {
     const currentDept = db.data.departments[index];
     const { name, headName, headTitle, leaderId, status, deletePhoto } = req.body;
 
+    let updatedLeaderId = currentDept.leaderId;
+    if (leaderId !== undefined && String(leaderId).trim() !== '') {
+      const parsed = parseInt(leaderId, 10);
+      if (!isNaN(parsed) && parsed > 0) updatedLeaderId = parsed;
+    }
+
     let photoUrl = currentDept.photo;
     if (deletePhoto === 'true' || deletePhoto === true || deletePhoto === '1') {
       photoUrl = '';
     }
     if (req.file) {
-      photoUrl = savePortraitFile(req.file);
-    }
-
-    let updatedLeaderId = currentDept.leaderId;
-    if (leaderId !== undefined && String(leaderId).trim() !== '') {
-      const parsed = parseInt(leaderId, 10);
-      if (!isNaN(parsed) && parsed > 0) updatedLeaderId = parsed;
+      photoUrl = savePortraitFile(req.file, updatedLeaderId);
     }
 
     const updatedDept = {

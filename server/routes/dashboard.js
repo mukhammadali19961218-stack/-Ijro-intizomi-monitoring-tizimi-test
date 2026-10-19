@@ -9,6 +9,7 @@ router.use(authenticate);
 // GET /api/dashboard/stats
 router.get('/stats', (req, res) => {
   try {
+    db.ensureFreshData();
     const stats = db.getStats();
     res.json(stats);
   } catch (err) {
@@ -19,6 +20,7 @@ router.get('/stats', (req, res) => {
 // GET /api/dashboard/departments
 router.get('/departments', (req, res) => {
   try {
+    db.ensureFreshData();
     const page = parseInt(req.query.page) || 1;
     const pageSize = parseInt(req.query.pageSize) || 3;
     const onlyOverdue = req.query.onlyOverdue !== 'false';
@@ -32,6 +34,7 @@ router.get('/departments', (req, res) => {
 // GET /api/dashboard/settings
 router.get('/settings', (req, res) => {
   try {
+    db.ensureFreshData();
     res.json({
       ...db.data.settings,
       serverTime: new Date().toISOString()

@@ -110,7 +110,7 @@
 
   async function loadDepartmentsForSelect() {
     try {
-      const res = await fetch('/api/admin/departments');
+      const res = await fetch(`/api/admin/departments?_t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         departmentsCache = await res.json();
         
@@ -341,8 +341,7 @@
     startImportBtn.addEventListener('click', async () => {
       if (!selectedExcelFile) return;
 
-      const modeRadio = document.querySelector('input[name="import-mode"]:checked');
-      const mode = modeRadio ? modeRadio.value : 'replace';
+      const mode = 'replace';
       const formData = new FormData();
       formData.append('mode', mode);
       formData.append('file', selectedExcelFile);
@@ -379,12 +378,14 @@
           <strong>✅ Muvaffaqiyatli import qilindi!</strong><br>
           • Qo‘shilgan topshiriqlar: <strong>${data.importedCount} ta</strong><br>
           • Yangi ochilgan boshqarmalar: <strong>${data.addedDeptsCount} ta</strong><br>
-          • Bazadagi jami topshiriqlar: <strong>${data.totalTasks} ta</strong>
+          • Bazadagi jami topshiriqlar: <strong>${data.totalTasks} ta</strong><br>
+          <span style="font-size: 12px; color: #047857;">💡 Eski topshiriqlar to‘liq tozalandi. Monitoring dashboardida faqat ushbu yangi fayl aks etadi.</span>
         `;
 
         showToast(data.message, 'success');
         await loadDepartmentsForSelect();
         await loadTasks();
+        await loadDepartmentsList();
 
       } catch (err) {
         importStatusBox.style.background = '#fef2f2';
@@ -409,7 +410,7 @@
 
   async function loadDepartmentsList() {
     try {
-      const res = await fetch('/api/admin/departments');
+      const res = await fetch(`/api/admin/departments?_t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Boshqarmalar olinmadi');
       const depts = await res.json();
       departmentsCache = depts;

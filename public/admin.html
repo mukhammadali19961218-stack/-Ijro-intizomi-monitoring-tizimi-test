@@ -150,16 +150,13 @@
             <input type="file" id="excel-file-input" accept=".xlsx, .xls" style="display: none;">
           </div>
 
-          <div style="margin-top: 18px;">
-            <label class="form-label">Yuklash rejimi:</label>
-            <div style="display: flex; gap: 16px; margin-top: 6px;">
-              <label style="font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                <input type="radio" name="import-mode" value="replace" checked> <strong>Barcha topshiriqlarni tozalab yangilash (Tavsiya etiladi)</strong>
-              </label>
-              <label style="font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                <input type="radio" name="import-mode" value="append"> Mavjud topshiriqlar ustiga qo‘shish (Append)
-              </label>
+          <div style="margin-top: 18px; background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 13px 16px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: #1e40af;">
+            <span style="font-size: 20px;">🔄</span>
+            <div>
+              <strong>Avtomatik tozalash va to‘liq yangilash:</strong><br>
+              <span style="font-size: 12.5px; color: #3b82f6;">Yangi Excel fayl yuklanganda barcha eski topshiriqlar avtomatik o‘chiriladi va monitoring dashboardi faqat yangi fayl asosida aks ettiriladi.</span>
             </div>
+            <input type="hidden" name="import-mode" value="replace">
           </div>
 
           <div id="import-status-box" style="display: none; margin-top: 18px; padding: 14px; border-radius: 12px; font-size: 13.5px;"></div>
@@ -447,6 +444,6 @@
   <!-- Toast Container -->
   <div id="toast-container" aria-live="polite"></div>
 
-  <script src="/js/admin.js"></script>
+  <script src="/js/admin.js?v=2.0"></script>
 </body>
 </html>

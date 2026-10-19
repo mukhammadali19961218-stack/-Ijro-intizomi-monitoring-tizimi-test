@@ -23,13 +23,24 @@ const publicDir = fs.existsSync(path.join(__dirname, '..', 'public'))
   ? path.join(__dirname, '..', 'public')
   : path.join(process.cwd(), 'public');
 
-// Static files (CSS, JS, images, uploads)
-app.use(express.static(publicDir));
+// Disable ETag globally to prevent 304 caching
+app.set('etag', false);
+
+// Static files (CSS, JS, images, uploads) with no-cache for scripts
+app.use(express.static(publicDir, {
+  etag: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.set('Cache-Control', 'no-cache, must-revalidate');
+      res.set('Pragma', 'no-cache');
+    }
+  }
+}));
 
 // Disable caching for all API endpoints to guarantee instant sync
 app.use('/api', (req, res, next) => {
   res.set({
-    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
     'Pragma': 'no-cache',
     'Expires': '0',
     'Surrogate-Control': 'no-store'
