@@ -280,6 +280,7 @@
       showToast(data.message || 'Muvaffaqiyatli saqlandi', 'success');
       closeAdminModal('task-form-modal');
       await loadTasks();
+      notifyDashboardUpdate();
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -294,9 +295,22 @@
       showToast(data.message || 'Topshiriq o‘chirildi', 'success');
       await loadTasks();
       await loadDepartmentsList();
+      notifyDashboardUpdate();
     } catch (err) {
       showToast(err.message, 'error');
     }
+  }
+
+  // Notify Dashboard (all open tabs, windows and devices) to immediately sync to Page 1
+  function notifyDashboardUpdate() {
+    try {
+      localStorage.setItem('ijro_data_sync_time', Date.now().toString());
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('ijro_monitoring_channel');
+        bc.postMessage({ type: 'DATA_UPDATED', timestamp: Date.now() });
+        setTimeout(() => bc.close(), 100);
+      }
+    } catch (_) {}
   }
 
   // Clear all tasks completely
@@ -313,6 +327,7 @@
       await loadTasks();
       await loadDepartmentsForSelect();
       await loadDepartmentsList();
+      notifyDashboardUpdate();
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -423,6 +438,7 @@
         await loadDepartmentsForSelect();
         await loadTasks();
         await loadDepartmentsList();
+        notifyDashboardUpdate();
 
       } catch (err) {
         importStatusBox.style.background = '#fef2f2';
@@ -690,6 +706,7 @@
       closeAdminModal('dept-form-modal');
       await loadDepartmentsForSelect();
       await loadDepartmentsList();
+      notifyDashboardUpdate();
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -705,6 +722,7 @@
       showToast(data.message || 'Boshqarma o‘chirildi', 'success');
       await loadDepartmentsForSelect();
       await loadDepartmentsList();
+      notifyDashboardUpdate();
     } catch (err) {
       showToast(err.message, 'error');
     }

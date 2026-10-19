@@ -177,6 +177,24 @@
   font-weight: 700;
   color: #334155;
   border: 1px solid #e2e8f0;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.live-indicator:hover {
+  background: #e2e8f0;
+}
+
+.live-indicator.syncing {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.live-indicator.syncing .pulse-dot {
+  background: #059669;
+  animation: pulseAnimation 0.6s infinite;
 }
 
 .pulse-dot {

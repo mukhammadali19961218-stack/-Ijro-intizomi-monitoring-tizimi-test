@@ -387,6 +387,8 @@ router.post('/tasks/clear-all', (req, res) => {
   try {
     const deletedCount = db.data.tasks.length;
     db.data.tasks = [];
+    if (!db.data.settings) db.data.settings = {};
+    db.data.settings.lastUpdated = new Date().toISOString();
     db.save();
     res.json({
       success: true,
@@ -685,6 +687,8 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
 
     // Recalculate all newly imported task statuses without disk reload
     db.syncTasksStatus(false);
+    if (!db.data.settings) db.data.settings = {};
+    db.data.settings.lastUpdated = new Date().toISOString();
     db.save();
 
     const overdueCount = db.data.tasks.filter(t => t.status === 'overdue').length;

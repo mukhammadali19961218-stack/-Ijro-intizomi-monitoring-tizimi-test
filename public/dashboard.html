@@ -84,17 +84,10 @@
           <span>Test rejimida ishlamoqda</span>
         </div>
 
-        <div class="live-indicator" title="Tizim server bilan doimiy aloqada">
-          <span class="pulse-dot"></span>
-          <span>Jonli yangilanadi</span>
+        <div class="live-indicator" id="live-indicator" role="button" tabindex="0" title="Tizim server bilan doimiy aloqada — ma’lumotlar avtomatik yangilanadi">
+          <span class="pulse-dot" id="live-pulse-dot"></span>
+          <span id="live-indicator-text">Jonli yangilanadi</span>
         </div>
-
-        <button class="btn-header" id="refresh-btn" title="Ma’lumotlarni yangilash">
-          <svg class="spin-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-          </svg>
-          <span id="refresh-label">Ma’lumotlarni yangilash</span>
-        </button>
 
         <button class="btn-header" id="fullscreen-btn" title="To‘liq ekran rejimi">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -350,6 +343,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" aria-live="polite"></div>
 
-  <script src="/js/dashboard.js?v=2.0"></script>
+  <script src="/js/dashboard.js?v=2.2"></script>
 </body>
 </html>

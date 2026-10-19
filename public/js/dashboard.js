@@ -21,6 +21,9 @@
     pageSize: 15
   };
 
+  let lastStatsSnapshot = { total: -1, inProgress: -1, overdue: -1 };
+  let lastKnownLastUpdated = null;
+
   // DOM Elements
   const metricTotalNum = document.getElementById('metric-total-num');
   const metricProgressNum = document.getElementById('metric-progress-num');
@@ -33,8 +36,8 @@
   const pageIndicatorText = document.getElementById('page-indicator-text');
   const paginationDots = document.getElementById('pagination-dots');
 
-  const refreshBtn = document.getElementById('refresh-btn');
-  const refreshLabel = document.getElementById('refresh-label');
+  const liveIndicator = document.getElementById('live-indicator');
+  const liveIndicatorText = document.getElementById('live-indicator-text');
   const fullscreenBtn = document.getElementById('fullscreen-btn');
   const fullscreenText = document.getElementById('fullscreen-text');
   const adminLinkBtn = document.getElementById('admin-link-btn');
@@ -64,6 +67,7 @@
     await fetchDepartments(1);
     await loadDepartmentOptions();
     bindEvents();
+    setupLiveSyncListeners();
     startAutoRefresh();
     startRotationTimer();
   }
@@ -106,6 +110,44 @@
     }
   }
 
+  // Live Sync Indicator Helper
+  function indicateLiveSyncing(isSyncing) {
+    if (!liveIndicator) return;
+    if (isSyncing) {
+      liveIndicator.classList.add('syncing');
+      if (liveIndicatorText) liveIndicatorText.textContent = 'Yangilanmoqda...';
+    } else {
+      if (liveIndicatorText) liveIndicatorText.textContent = 'Yangilandi!';
+      setTimeout(() => {
+        liveIndicator.classList.remove('syncing');
+        if (liveIndicatorText) liveIndicatorText.textContent = 'Jonli yangilanadi';
+      }, 1500);
+    }
+  }
+
+  // Automatic Full Sync with reset to Page 1
+  async function autoSyncData(resetToPage1 = true, showToastNotice = false) {
+    indicateLiveSyncing(true);
+    if (resetToPage1) {
+      currentPage = 1;
+    }
+    try {
+      await Promise.all([
+        fetchStats(),
+        fetchDepartments(currentPage, false),
+        loadDepartmentOptions()
+      ]);
+      if (showToastNotice) {
+        showToast('Ma’lumotlar avtomatik yangilandi', 'success');
+      }
+    } catch (err) {
+      console.error('Auto sync error:', err);
+    } finally {
+      indicateLiveSyncing(false);
+      startRotationTimer();
+    }
+  }
+
   // Fetch Summary Stats
   async function fetchStats() {
     try {
@@ -113,16 +155,36 @@
       if (!res.ok) throw new Error('Statistika yuklanmadi');
       const stats = await res.json();
 
-      metricTotalNum.textContent = stats.totalTasks ?? 0;
-      metricProgressNum.textContent = stats.inProgressTasks ?? 0;
-      metricOverdueNum.textContent = stats.overdueTasks ?? 0;
+      const total = stats.totalTasks ?? 0;
+      const progress = stats.inProgressTasks ?? 0;
+      const overdue = stats.overdueTasks ?? 0;
 
-      const dateObj = new Date(stats.lastUpdated || Date.now());
-      const timeStr = dateObj.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
-      refreshLabel.textContent = `Yangilandi: ${timeStr}`;
+      const isInitial = lastStatsSnapshot.total === -1;
+      const hasChanged = !isInitial && (
+        lastStatsSnapshot.total !== total ||
+        lastStatsSnapshot.inProgress !== progress ||
+        lastStatsSnapshot.overdue !== overdue ||
+        (stats.lastUpdated && lastKnownLastUpdated && stats.lastUpdated !== lastKnownLastUpdated)
+      );
+
+      lastStatsSnapshot = { total, inProgress: progress, overdue };
+      if (stats.lastUpdated) lastKnownLastUpdated = stats.lastUpdated;
+
+      metricTotalNum.textContent = total;
+      metricProgressNum.textContent = progress;
+      metricOverdueNum.textContent = overdue;
+
+      // Automatically recalculate and switch to Page 1 if new Excel/data arrived!
+      if (hasChanged) {
+        currentPage = 1;
+        await fetchDepartments(1, false);
+        await loadDepartmentOptions();
+        indicateLiveSyncing(false);
+      }
+
+      return stats;
     } catch (err) {
       console.error('Stats error:', err);
-      showToast('Statistikani yangilashda xatolik', 'error');
     }
   }
 
@@ -467,28 +529,6 @@
       openTasksModal({ status: 'overdue', departmentId: 'all', title: 'Muddati o‘tgan topshiriqlar' });
     });
 
-    // Refresh Button - Immediately fetches latest data from server
-    refreshBtn.addEventListener('click', async () => {
-      refreshBtn.classList.add('spinning');
-      if (refreshLabel) refreshLabel.textContent = 'Yangilanmoqda...';
-      currentPage = 1;
-      try {
-        await Promise.all([
-          fetchStats(),
-          fetchDepartments(1),
-          loadDepartmentOptions()
-        ]);
-        showToast('Ma’lumotlar muvaffaqiyatli yangilandi', 'success');
-      } catch (err) {
-        showToast('Ma’lumotlarni yangilashda xatolik', 'error');
-      } finally {
-        setTimeout(() => {
-          refreshBtn.classList.remove('spinning');
-        }, 400);
-        startRotationTimer();
-      }
-    });
-
     // Fullscreen Toggle
     fullscreenBtn.addEventListener('click', () => {
       if (!document.fullscreenElement) {
@@ -556,12 +596,46 @@
     });
   }
 
-  // Auto-refresh interval (polling from server every 30s)
+  // Live Sync Listeners (BroadcastChannel + LocalStorage + Click on Live Indicator)
+  function setupLiveSyncListeners() {
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const bc = new BroadcastChannel('ijro_monitoring_channel');
+        bc.onmessage = (ev) => {
+          if (ev.data && ev.data.type === 'DATA_UPDATED') {
+            autoSyncData(true, true);
+          }
+        };
+      } catch (_) {}
+    }
+
+    window.addEventListener('storage', (ev) => {
+      if (ev.key === 'ijro_data_sync_time') {
+        autoSyncData(true, true);
+      }
+    });
+
+    if (liveIndicator) {
+      liveIndicator.addEventListener('click', () => {
+        autoSyncData(true, true);
+      });
+      liveIndicator.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          autoSyncData(true, true);
+        }
+      });
+    }
+  }
+
+  // Fast background polling every 5 seconds for instant detection of new Excel imports on remote TVs/displays
   function startAutoRefresh() {
     if (autoRefreshTimer) clearInterval(autoRefreshTimer);
     autoRefreshTimer = setInterval(async () => {
-      await Promise.all([fetchStats(), fetchDepartments(currentPage, true)]);
-    }, 30000);
+      // Don't interrupt user if modal is currently open
+      if (taskModal && taskModal.classList.contains('active')) return;
+      await fetchStats();
+    }, 5000);
   }
 
   // Run on load
