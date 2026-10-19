@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, calculateDelayDays, parseDateComponents } = require('../db');
+const { db, computeTaskStatus } = require('../db');
 const { authenticate } = require('../middleware/auth');
 
 router.use(authenticate);
@@ -10,30 +10,15 @@ router.get('/', (req, res) => {
   try {
     const { status, departmentId, search, page = 1, pageSize = 20 } = req.query;
 
-    const today = new Date();
-    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    db.syncTasksStatus(true);
+    const now = new Date();
 
     let tasks = db.data.tasks.map(t => {
-      let computedStatus = t.status;
-      let delayDays = t.delayDays || 0;
-
-      if (computedStatus !== 'completed' && t.deadline) {
-        const dMidnight = parseDateComponents(t.deadline);
-        if (dMidnight) {
-          if (todayMidnight > dMidnight) {
-            computedStatus = 'overdue';
-            delayDays = calculateDelayDays(t.deadline);
-          } else {
-            computedStatus = 'in_progress';
-            delayDays = 0;
-          }
-        }
-      }
-
+      const computed = computeTaskStatus(t, now);
       return {
         ...t,
-        computedStatus,
-        delayDays
+        computedStatus: computed.status,
+        delayDays: computed.delayDays
       };
     });
 

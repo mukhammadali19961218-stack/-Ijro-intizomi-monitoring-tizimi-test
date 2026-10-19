@@ -4,7 +4,8 @@
   'use strict';
 
   // State
-  let currentPage = parseInt(localStorage.getItem('ijro_dept_page') || '1', 10);
+  // State - Always start at page 1 on refresh so critical overdue departments are immediately visible
+  let currentPage = 1;
   let totalPages = 1;
   let currentUser = null;
   let autoRefreshTimer = null;
@@ -60,7 +61,7 @@
     await checkAuth();
     await loadSettings();
     await fetchStats();
-    await fetchDepartments(currentPage);
+    await fetchDepartments(1);
     await loadDepartmentOptions();
     bindEvents();
     startAutoRefresh();
@@ -70,7 +71,7 @@
   // Check Authentication
   async function checkAuth() {
     try {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch(`/api/auth/me?_t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) {
         window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
         return;
@@ -93,7 +94,7 @@
   // Load Settings
   async function loadSettings() {
     try {
-      const res = await fetch('/api/dashboard/settings');
+      const res = await fetch(`/api/dashboard/settings?_t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const s = await res.json();
         if (s.orgName) document.getElementById('org-name-text').textContent = s.orgName.toUpperCase();
@@ -108,7 +109,7 @@
   // Fetch Summary Stats
   async function fetchStats() {
     try {
-      const res = await fetch('/api/dashboard/stats');
+      const res = await fetch(`/api/dashboard/stats?_t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Statistika yuklanmadi');
       const stats = await res.json();
 
@@ -128,15 +129,14 @@
   // Fetch Departments (Paginated, 3 per page, only with overdue tasks)
   async function fetchDepartments(page = 1, isAuto = false) {
     try {
-      // onlyOverdue=true: Faqat muddati o'tgan topshiriqlari bor boshqarmalar ko'rsatiladi
-      const res = await fetch(`/api/dashboard/departments?page=${page}&pageSize=3&onlyOverdue=true`);
+      // onlyOverdue=true: Faqat muddati o‘tgan topshiriqlari bor boshqarmalar ko‘rsatiladi
+      const res = await fetch(`/api/dashboard/departments?page=${page}&pageSize=3&onlyOverdue=true&_t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Boshqarmalar ma’lumoti olinmadi');
       const data = await res.json();
 
       // If requested page is out of bounds (e.g. data changed), adjust
       currentPage = data.page;
       totalPages = data.totalPages;
-      localStorage.setItem('ijro_dept_page', currentPage);
 
       pageIndicatorText.textContent = `${currentPage} / ${totalPages}`;
       prevPageBtn.disabled = totalPages <= 1;
@@ -298,7 +298,7 @@
   // Load Department Options for Modal Dropdown
   async function loadDepartmentOptions() {
     try {
-      const res = await fetch('/api/dashboard/departments?page=1&pageSize=100&onlyOverdue=false');
+      const res = await fetch(`/api/dashboard/departments?page=1&pageSize=100&onlyOverdue=false&_t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         modalDeptSelect.innerHTML = '<option value="all">Barcha boshqarmalar</option>' +
@@ -345,10 +345,11 @@
         departmentId: modalFilter.departmentId,
         search: modalFilter.search,
         page: modalFilter.page,
-        pageSize: modalFilter.pageSize
+        pageSize: modalFilter.pageSize,
+        _t: Date.now()
       });
 
-      const res = await fetch(`/api/tasks?${params.toString()}`);
+      const res = await fetch(`/api/tasks?${params.toString()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Topshiriqlarni yuklashda xatolik');
       const data = await res.json();
 
@@ -458,7 +459,7 @@
     // Refresh Button
     refreshBtn.addEventListener('click', async () => {
       refreshBtn.classList.add('spinning');
-      await Promise.all([fetchStats(), fetchDepartments(currentPage)]);
+      await Promise.all([fetchStats(), fetchDepartments(1), loadDepartmentOptions()]);
       setTimeout(() => {
         refreshBtn.classList.remove('spinning');
         showToast('Ma’lumotlar muvaffaqiyatli yangilandi', 'success');
@@ -533,12 +534,12 @@
     });
   }
 
-  // Auto-refresh interval (polling from server every 60s)
+  // Auto-refresh interval (polling from server every 30s)
   function startAutoRefresh() {
     if (autoRefreshTimer) clearInterval(autoRefreshTimer);
     autoRefreshTimer = setInterval(async () => {
-      await Promise.all([fetchStats(), fetchDepartments(currentPage)]);
-    }, 60000);
+      await Promise.all([fetchStats(), fetchDepartments(currentPage, true)]);
+    }, 30000);
   }
 
   // Run on load

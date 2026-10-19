@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const XLSX = require('xlsx');
 const bcrypt = require('bcryptjs');
-const { db, parseTaskDate, calculateDelayDays, determineStatus, parseDateComponents } = require('../db');
+const { db, parseTaskDate, calculateDelayDays, determineStatus, parseDateComponents, computeTaskStatus } = require('../db');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
 // Helper to save portrait (supports local disk or serverless Base64 fallback)
@@ -74,27 +74,12 @@ router.use(authenticate, requireAdmin);
 router.get('/tasks', (req, res) => {
   const { status, departmentId, search, page = 1, pageSize = 25 } = req.query;
 
-  const today = new Date();
-  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  db.syncTasksStatus(true);
+  const now = new Date();
 
   let tasks = db.data.tasks.map(t => {
-    let computedStatus = t.status;
-    let delayDays = t.delayDays || 0;
-
-    if (computedStatus !== 'completed' && t.deadline) {
-      const dMidnight = parseDateComponents(t.deadline);
-      if (dMidnight) {
-        if (todayMidnight > dMidnight) {
-          computedStatus = 'overdue';
-          delayDays = calculateDelayDays(t.deadline);
-        } else {
-          computedStatus = 'in_progress';
-          delayDays = 0;
-        }
-      }
-    }
-
-    return { ...t, computedStatus, delayDays };
+    const computed = computeTaskStatus(t, now);
+    return { ...t, computedStatus: computed.status, delayDays: computed.delayDays };
   });
 
   if (status && status !== 'all') {
@@ -267,23 +252,58 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
   }
 
   try {
-    const importMode = req.body.mode || 'append'; // 'replace' or 'append'
+    // Mode defaults to 'replace' so new Excel data completely replaces old data
+    const queryMode = req.query.mode ? String(req.query.mode).toLowerCase() : null;
+    const bodyMode = req.body && req.body.mode ? String(req.body.mode).toLowerCase() : null;
+    const importMode = queryMode || bodyMode || 'replace';
+
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    
+    // Choose appropriate sheet
+    let sheetName = wb.SheetNames[0];
+    const preferredSheet = wb.SheetNames.find(s => {
+      const lower = s.toLowerCase();
+      return lower.includes('топшириқ') || lower.includes('topshiriq') || lower.includes('ijro') || lower.includes('jadval');
+    });
+    if (preferredSheet) sheetName = preferredSheet;
+
+    const sheet = wb.Sheets[sheetName];
+    let rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    // Handle merged title rows / header offset if keys are mostly __EMPTY
+    if (rawRows.length > 1) {
+      const firstRowKeys = Object.keys(rawRows[0]);
+      const emptyKeyCount = firstRowKeys.filter(k => k.startsWith('__EMPTY')).length;
+      if (emptyKeyCount >= 3) {
+        for (let r = 0; r < Math.min(rawRows.length, 6); r++) {
+          const rowVals = Object.values(rawRows[r]).map(v => String(v).toLowerCase());
+          const hasHeaderKeywords = rowVals.some(v => 
+            v.includes('topshiriq') || v.includes('boshqarma') || v.includes('ijro') || 
+            v.includes('muddati') || v.includes('№') || v.includes('rahbar') || v.includes('hujjat')
+          );
+          if (hasHeaderKeywords) {
+            rawRows = XLSX.utils.sheet_to_json(sheet, { range: r + 1, defval: '' });
+            break;
+          }
+        }
+      }
+    }
 
     if (!rawRows || rawRows.length === 0) {
       return res.status(400).json({ error: 'Excel faylida ma’lumot topilmadi.' });
     }
 
-    const availablePhotos = fs.existsSync(path.join(__dirname, '..', '..', 'public', 'uploads', 'portraits'))
-      ? fs.readdirSync(path.join(__dirname, '..', '..', 'public', 'uploads', 'portraits'))
+    const portraitsDir = path.join(__dirname, '..', '..', 'public', 'uploads', 'portraits');
+    const availablePhotos = fs.existsSync(portraitsDir)
+      ? fs.readdirSync(portraitsDir)
       : [];
 
-    // Ensure departments
+    // Ensure departments lookup
     const deptMapByName = new Map();
+    const deptMapById = new Map();
     db.data.departments.forEach(d => {
       deptMapByName.set(d.name.toLowerCase().replace(/['`’]/g, ''), d);
+      if (d.leaderId) deptMapById.set(String(d.leaderId), d);
     });
 
     const newTasks = [];
@@ -308,8 +328,11 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
       const deptName = String(
         row['Mas’ul boshqarma'] ||
         row['Mas\'ul boshqarma'] ||
-        row['Lavozimi'] ||
+        row['Boshqarma nomi'] ||
         row['Boshqarma'] ||
+        row['Bo‘lim'] ||
+        row['Lavozimi'] ||
+        row['Tashkilot'] ||
         ''
       ).trim();
 
@@ -317,7 +340,13 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
         row['Mas’ul ijrochi'] ||
         row['Mas\'ul ijrochi'] ||
         row['Ma\'sul xodim'] ||
+        row['Mas’ul xodim'] ||
+        row['Mas\'ul'] ||
         row['Ijrochi'] ||
+        row['F.I.SH'] ||
+        row['FISH'] ||
+        row['F.I.O'] ||
+        row['FIO'] ||
         ''
       ).trim();
 
@@ -328,7 +357,7 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
 
       // Match Strategy 1: Find by explicit leaderId (or id)
       if (rawLeaderId) {
-        dept = db.data.departments.find(d => 
+        dept = deptMapById.get(rawLeaderId) || db.data.departments.find(d => 
           String(d.leaderId) === rawLeaderId || 
           String(d.id) === rawLeaderId ||
           (d.leaderId && String(d.leaderId).toLowerCase() === rawLeaderId.toLowerCase())
@@ -337,7 +366,7 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
         if (!dept && /^\d+$/.test(rawLeaderId)) {
           const num = parseInt(rawLeaderId, 10);
           if (num < 100) {
-            dept = db.data.departments.find(d => String(d.leaderId) === String(num + 100));
+            dept = deptMapById.get(String(num + 100)) || db.data.departments.find(d => String(d.leaderId) === String(num + 100));
           }
         }
       }
@@ -347,7 +376,7 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
         const numMatch = deptName.match(/^#?(\d+)/);
         if (numMatch) {
           const extractedId = numMatch[1];
-          dept = db.data.departments.find(d => 
+          dept = deptMapById.get(extractedId) || db.data.departments.find(d => 
             String(d.leaderId) === extractedId || 
             String(d.leaderId) === String(parseInt(extractedId, 10) + 100)
           );
@@ -364,6 +393,27 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
       if (!dept && headName) {
         const normHead = headName.toLowerCase().replace(/['`’]/g, '');
         dept = db.data.departments.find(d => d.headName && d.headName.toLowerCase().replace(/['`’]/g, '') === normHead);
+      }
+
+      // If department was found, keep its name and headName up to date from Excel
+      if (dept) {
+        if (deptName && deptName !== '-' && (!dept.name || dept.name.startsWith('Boshqarma #') || dept.name !== deptName)) {
+          dept.name = deptName;
+          deptMapByName.set(dept.name.toLowerCase().replace(/['`’]/g, ''), dept);
+        }
+        if (headName && (!dept.headName || dept.headName === 'Mas’ul rahbar' || dept.headName === 'Mas’ul xodim' || dept.headName !== headName)) {
+          dept.headName = headName;
+        }
+        // Match photo if empty
+        if (!dept.photo && headName) {
+          const normHead = headName.toLowerCase().replace(/['`’]/g, '');
+          const headParts = normHead.split(/\s+/).filter(p => p.length >= 4);
+          const found = availablePhotos.find(f => {
+            const normF = f.toLowerCase().replace(/['`’]/g, '');
+            return headParts.some(hp => normF.includes(hp));
+          });
+          if (found) dept.photo = `/uploads/portraits/${found}`;
+        }
       }
 
       // Strategy 5: If not found, auto-create department with new leaderId!
@@ -399,31 +449,45 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
         };
         db.data.departments.push(dept);
         deptMapByName.set(dept.name.toLowerCase().replace(/['`’]/g, ''), dept);
+        deptMapById.set(String(dept.leaderId), dept);
         addedDeptsCount++;
       }
 
-      const rawDate = row['Ijro muddati'] || row['Topshiriq muddati'] || row['Muddati'];
+      const rawDate = row['Ijro muddati'] || row['Topshiriq muddati'] || row['Muddati'] || row['Muddat'] || row['Sana'] || row['Ijro sanasi'] || row['Berilgan sana'];
       const deadline = parseTaskDate(rawDate);
-      const rawStatus = row['Holati'] || '';
-      const status = determineStatus(rawStatus, deadline);
-      const delayDays = calculateDelayDays(deadline);
+      const rawStatus = row['Holati'] || row['Holat'] || row['Status'] || '';
+      const initialStatus = determineStatus(rawStatus, deadline);
+      const initialDelayDays = calculateDelayDays(deadline);
+
+      const candidateTask = {
+        deadline,
+        status: initialStatus,
+        delayDays: initialStatus === 'overdue' ? (initialDelayDays || 1) : 0,
+        completedDate: initialStatus === 'completed' ? new Date().toISOString() : null
+      };
+      const computed = computeTaskStatus(candidateTask);
 
       const title = String(
         row['Topshiriq mazmuni'] ||
-        row['Hujjat raqami va sanasi'] ||
-        row['Mazmuni'] ||
         row['Topshiriq'] ||
+        row['Mazmuni'] ||
+        row['Hujjat raqami va sanasi'] ||
+        row['Hujjat raqami'] ||
+        row['Topshiriq matni'] ||
         `Topshiriq #${idx + 1}`
       ).trim();
 
       const taskNumber = String(
         row['Topshiriq ID'] ||
         row['№'] ||
-        row['Hujjat raqami va sanasi'] ||
+        row['T/r'] ||
+        row['T/R'] ||
+        row['Id'] ||
+        row['ID'] ||
         `№${idx + 1}`
       ).trim();
 
-      const docType = String(row['Hujjat turi'] || 'Hujjat').trim();
+      const docType = String(row['Hujjat turi'] || row['Turi'] || 'Hujjat').trim();
       const taskType = String(row['Topshiriq turi'] || 'Ijro topshirig‘i').trim();
       const notes = String(row['Izoh'] || '').trim();
 
@@ -439,24 +503,31 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
         departmentName: dept.name,
         responsiblePerson: headName || dept.headName,
         deadline: deadline || new Date().toISOString().split('T')[0],
-        status,
-        completedDate: status === 'completed' ? new Date().toISOString() : null,
-        delayDays: status === 'overdue' ? (delayDays || 1) : 0,
+        status: computed.status,
+        completedDate: computed.status === 'completed' ? new Date().toISOString() : null,
+        delayDays: computed.delayDays,
         notes,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
     });
 
+    if (newTasks.length === 0) {
+      return res.status(400).json({ error: 'Excel faylidan topshiriqlar o‘qib bo‘lmadi. Ustunlar nomini tekshiring.' });
+    }
+
     if (importMode === 'replace') {
       db.data.tasks = newTasks;
+      // Retain only departments that are referenced in the new tasks,
+      // completely removing obsolete departments and their old overdue counts!
+      const referencedDeptIds = new Set(newTasks.map(t => t.departmentId));
+      db.data.departments = db.data.departments.filter(d => referencedDeptIds.has(d.id));
     } else {
       db.data.tasks = [...newTasks, ...db.data.tasks];
     }
 
+    db.syncTasksStatus(true);
     db.save();
-
-    // In-memory buffer processed successfully, no disk cleanup needed
 
     res.json({
       success: true,

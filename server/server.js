@@ -26,6 +26,17 @@ const publicDir = fs.existsSync(path.join(__dirname, '..', 'public'))
 // Static files (CSS, JS, images, uploads)
 app.use(express.static(publicDir));
 
+// Disable caching for all API endpoints to guarantee instant sync
+app.use('/api', (req, res, next) => {
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Surrogate-Control': 'no-store'
+  });
+  next();
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -38,10 +49,18 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/dashboard', authenticate, (req, res) => {
+  res.set({
+    'Cache-Control': 'no-cache, must-revalidate',
+    'Pragma': 'no-cache'
+  });
   res.sendFile(path.join(publicDir, 'dashboard.html'));
 });
 
 app.get('/admin', authenticate, requireAdmin, (req, res) => {
+  res.set({
+    'Cache-Control': 'no-cache, must-revalidate',
+    'Pragma': 'no-cache'
+  });
   res.sendFile(path.join(publicDir, 'admin.html'));
 });
 

@@ -138,10 +138,11 @@
         pageSize: taskPageSize,
         search: adminTaskSearch.value.trim(),
         status: adminTaskStatusFilter.value,
-        departmentId: adminTaskDeptFilter.value
+        departmentId: adminTaskDeptFilter.value,
+        _t: Date.now()
       });
 
-      const res = await fetch(`/api/admin/tasks?${params.toString()}`);
+      const res = await fetch(`/api/admin/tasks?${params.toString()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Topshiriqlarni yuklashda xatolik');
       const data = await res.json();
 
@@ -340,10 +341,11 @@
     startImportBtn.addEventListener('click', async () => {
       if (!selectedExcelFile) return;
 
-      const mode = document.querySelector('input[name="import-mode"]:checked').value;
+      const modeRadio = document.querySelector('input[name="import-mode"]:checked');
+      const mode = modeRadio ? modeRadio.value : 'replace';
       const formData = new FormData();
-      formData.append('file', selectedExcelFile);
       formData.append('mode', mode);
+      formData.append('file', selectedExcelFile);
 
       startImportBtn.disabled = true;
       startImportBtn.textContent = 'Import qilinmoqda...';
@@ -354,7 +356,7 @@
       importStatusBox.innerHTML = 'Fayl serverga yuborilmoqda va topshiriqlar tahlil qilinmoqda...';
 
       try {
-        const res = await fetch('/api/admin/tasks/import-excel', {
+        const res = await fetch(`/api/admin/tasks/import-excel?mode=${encodeURIComponent(mode)}&_t=${Date.now()}`, {
           method: 'POST',
           body: formData
         });
