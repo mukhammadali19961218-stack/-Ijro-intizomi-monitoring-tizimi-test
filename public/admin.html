@@ -85,6 +85,10 @@
           </div>
 
           <div style="display: flex; gap: 10px;">
+            <button class="btn btn-danger" id="clear-all-tasks-btn" style="display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>Bazani tozalash</span>
+            </button>
             <button class="btn btn-primary" id="add-task-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span>Yangi topshiriq</span>
@@ -161,9 +165,15 @@
 
           <div id="import-status-box" style="display: none; margin-top: 18px; padding: 14px; border-radius: 12px; font-size: 13.5px;"></div>
 
-          <button class="btn btn-primary" id="start-import-btn" style="width: 100%; margin-top: 20px;" disabled>
-            Excel faylini yuklash va import qilish
-          </button>
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-primary" id="start-import-btn" style="flex: 1;" disabled>
+              Excel faylini yuklash va import qilish
+            </button>
+            <button type="button" class="btn btn-danger" id="clear-tasks-from-excel-tab-btn" style="display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              <span>Eski topshiriqlarni tozalash</span>
+            </button>
+          </div>
         </div>
 
         <!-- Export & Template Card -->

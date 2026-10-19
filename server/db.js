@@ -71,10 +71,16 @@ function calculateDelayDays(deadlineStr, completedDateStr = null, baseDate = new
 function determineStatus(rawStatus, deadlineStr, completedDateStr = null, baseDate = new Date()) {
   if (completedDateStr) return 'completed';
   const norm = String(rawStatus || '').toLowerCase();
-  if (norm.includes('bajarilgan') || norm.includes('bajarildi') || norm === 'completed') {
+  if (
+    norm.includes('bajarilgan') || norm.includes('bajarildi') || norm === 'completed' ||
+    norm.includes('бажарилган') || norm.includes('бажарилди')
+  ) {
     return 'completed';
   }
-  if (norm.includes('o‘tgan') || norm.includes("o'tgan") || norm.includes('kechikkan') || norm === 'overdue') {
+  if (
+    norm.includes('o‘tgan') || norm.includes("o'tgan") || norm.includes('kechikkan') || norm === 'overdue' ||
+    norm.includes('ўтган') || norm.includes('у́тган') || norm.includes('кечиккан') || norm.includes('муддати ўтган')
+  ) {
     return 'overdue';
   }
   // Check deadline
@@ -115,7 +121,10 @@ function computeTaskStatus(task, baseDate = new Date()) {
 
   // 2. If explicitly designated as overdue (e.g. from Excel raw 'Holati' or manual admin update)
   const normRaw = String(task.status || '').toLowerCase();
-  if (normRaw === 'overdue' || normRaw.includes('o‘tgan') || normRaw.includes("o'tgan") || normRaw.includes('kechikkan')) {
+  if (
+    normRaw === 'overdue' || normRaw.includes('o‘tgan') || normRaw.includes("o'tgan") || normRaw.includes('kechikkan') ||
+    normRaw.includes('ўтган') || normRaw.includes('у́тган') || normRaw.includes('кечиккан')
+  ) {
     return {
       status: 'overdue',
       delayDays: (typeof task.delayDays === 'number' && task.delayDays > 0) ? task.delayDays : 1
@@ -150,11 +159,18 @@ class Database {
 
   ensureFreshData() {
     try {
+      const tmpFile = path.join(require('os').tmpdir(), 'ijro_database.json');
+      let newestDiskMtime = 0;
       if (fs.existsSync(DB_FILE)) {
-        const stat = fs.statSync(DB_FILE);
-        if (!this.lastLoadedMtime || stat.mtimeMs > this.lastLoadedMtime) {
-          this.load();
-        }
+        try { newestDiskMtime = Math.max(newestDiskMtime, fs.statSync(DB_FILE).mtimeMs); } catch (_) {}
+      }
+      if (fs.existsSync(tmpFile)) {
+        try { newestDiskMtime = Math.max(newestDiskMtime, fs.statSync(tmpFile).mtimeMs); } catch (_) {}
+      }
+
+      // Only reload if an external process updated the disk file after our last load/save
+      if (newestDiskMtime > (this.lastLoadedMtime + 100)) {
+        this.load();
       }
     } catch (_) {}
   }
@@ -162,20 +178,43 @@ class Database {
   load() {
     try {
       let loaded = false;
+      const tmpFile = path.join(require('os').tmpdir(), 'ijro_database.json');
 
+      let dbMtime = 0;
+      let tmpMtime = 0;
       if (fs.existsSync(DB_FILE)) {
-        const raw = fs.readFileSync(DB_FILE, 'utf8');
-        this.data = JSON.parse(raw);
-        this.lastLoadedMtime = fs.statSync(DB_FILE).mtimeMs;
-        loaded = true;
-      } else {
-        // Fallback check in temp dir
-        const tmpFile = path.join(require('os').tmpdir(), 'ijro_database.json');
-        if (fs.existsSync(tmpFile)) {
+        try { dbMtime = fs.statSync(DB_FILE).mtimeMs; } catch (_) {}
+      }
+      if (fs.existsSync(tmpFile)) {
+        try { tmpMtime = fs.statSync(tmpFile).mtimeMs; } catch (_) {}
+      }
+
+      // Prioritize the newer file between primary DB_FILE and tmpFile
+      if (tmpMtime > dbMtime && fs.existsSync(tmpFile)) {
+        try {
           const rawTmp = fs.readFileSync(tmpFile, 'utf8');
           this.data = JSON.parse(rawTmp);
+          this.lastLoadedMtime = tmpMtime;
           loaded = true;
-        }
+        } catch (_) {}
+      }
+
+      if (!loaded && fs.existsSync(DB_FILE)) {
+        try {
+          const raw = fs.readFileSync(DB_FILE, 'utf8');
+          this.data = JSON.parse(raw);
+          this.lastLoadedMtime = dbMtime;
+          loaded = true;
+        } catch (_) {}
+      }
+
+      if (!loaded && fs.existsSync(tmpFile)) {
+        try {
+          const rawTmp = fs.readFileSync(tmpFile, 'utf8');
+          this.data = JSON.parse(rawTmp);
+          this.lastLoadedMtime = tmpMtime;
+          loaded = true;
+        } catch (_) {}
       }
 
       if (!loaded) {
@@ -228,13 +267,20 @@ class Database {
     try {
       this.data.settings.lastUpdated = new Date().toISOString();
       const content = JSON.stringify(this.data, null, 2);
+      const nowMs = Date.now();
+      let saved = false;
 
       // 1. Direct write to primary DB_FILE
       try {
         const dir = path.dirname(DB_FILE);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(DB_FILE, content, 'utf8');
-        this.lastLoadedMtime = fs.statSync(DB_FILE).mtimeMs;
+        try {
+          this.lastLoadedMtime = fs.statSync(DB_FILE).mtimeMs;
+        } catch (_) {
+          this.lastLoadedMtime = nowMs;
+        }
+        saved = true;
       } catch (errPrimary) {
         console.warn('Primary DB_FILE write failed (read-only filesystem or locked):', errPrimary.message);
       }
@@ -243,9 +289,19 @@ class Database {
       try {
         const tmpFile = path.join(require('os').tmpdir(), 'ijro_database.json');
         fs.writeFileSync(tmpFile, content, 'utf8');
+        if (!saved) {
+          try {
+            this.lastLoadedMtime = fs.statSync(tmpFile).mtimeMs;
+          } catch (_) {
+            this.lastLoadedMtime = nowMs;
+          }
+        }
+        saved = true;
       } catch (errTmp) {
         console.warn('Tmpdir backup write failed:', errTmp.message);
       }
+
+      this.lastLoadedMtime = Math.max(this.lastLoadedMtime || 0, nowMs);
     } catch (err) {
       console.error('Error in save():', err.message);
     }
@@ -282,7 +338,6 @@ class Database {
   }
 
   syncTasksStatus(saveIfChanged = true) {
-    this.ensureFreshData();
     let changed = false;
     const now = new Date();
 

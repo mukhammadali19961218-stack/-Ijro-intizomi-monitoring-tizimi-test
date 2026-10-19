@@ -9,21 +9,90 @@ const bcrypt = require('bcryptjs');
 const { db, parseTaskDate, calculateDelayDays, determineStatus, parseDateComponents, computeTaskStatus } = require('../db');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
+// Helper to delete previous portraits of a leader from disk
+function deleteLeaderPortraits(leaderId, headName = '', currentPhotoUrl = '') {
+  try {
+    const portraitsDir = path.join(__dirname, '..', '..', 'public', 'uploads', 'portraits');
+    if (!fs.existsSync(portraitsDir)) return;
+
+    // 1. Delete file directly pointed to by currentPhotoUrl
+    if (currentPhotoUrl && typeof currentPhotoUrl === 'string' && currentPhotoUrl.startsWith('/uploads/portraits/')) {
+      const cleanRelative = currentPhotoUrl.split('?')[0].replace(/^\/uploads\/portraits\//, '');
+      if (cleanRelative) {
+        const filePath = path.join(portraitsDir, cleanRelative);
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (_) {}
+        }
+      }
+    }
+
+    const cleanId = leaderId ? String(leaderId).trim().replace(/^#/, '') : '';
+    const allFiles = fs.readdirSync(portraitsDir);
+
+    // 2. Remove all files matching leaderId (e.g. 101.jpg, 101.png, 101_*.jpg, leader_101_*.jpg)
+    if (cleanId) {
+      const idLower = cleanId.toLowerCase();
+      allFiles.forEach(f => {
+        const ext = path.extname(f).toLowerCase();
+        const base = path.basename(f, ext).toLowerCase();
+        if (
+          base === idLower ||
+          base.startsWith(`${idLower}_`) ||
+          base.startsWith(`${idLower}-`) ||
+          base.startsWith(`leader_${idLower}_`) ||
+          base.startsWith(`leader_${idLower}-`)
+        ) {
+          try { fs.unlinkSync(path.join(portraitsDir, f)); } catch (_) {}
+        }
+      });
+    }
+
+    // 3. Remove any named photo files matching headName (e.g. "TURG'UNOVA FERUZA ABDURAHIMOVNA.jpg")
+    if (headName && headName.trim().length >= 6) {
+      const normHead = headName.trim().toLowerCase().replace(/['`’‘]/g, '').replace(/\s+/g, ' ');
+      const headWords = normHead.split(' ').filter(w => w.length >= 3);
+      if (headWords.length >= 2) {
+        allFiles.forEach(f => {
+          const ext = path.extname(f).toLowerCase();
+          const base = path.basename(f, ext);
+          if (/^\d+$/.test(base)) return;
+          const normF = base.toLowerCase().replace(/['`’‘]/g, '').replace(/\s+/g, ' ');
+          if (headWords.every(hw => normF.includes(hw))) {
+            try { fs.unlinkSync(path.join(portraitsDir, f)); } catch (_) {}
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Error deleting leader portraits:', err.message);
+  }
+}
+
 // Helper to save portrait (supports local disk or serverless Base64 fallback)
-function savePortraitFile(file, leaderId = null) {
+function savePortraitFile(file, leaderId = null, headName = '', currentPhotoUrl = '') {
   if (!file || !file.buffer) return '';
   try {
+    // Clean up old photos first so old picture never lingers
+    deleteLeaderPortraits(leaderId, headName, currentPhotoUrl);
+
     const dir = path.join(__dirname, '..', '..', 'public', 'uploads', 'portraits');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    const ext = path.extname(file.originalname) || '.jpg';
-    const safeName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_\-\u0400-\u04FF]/g, '_');
-    const filename = `${safeName}_${Date.now()}${ext}`;
+
+    const ext = (path.extname(file.originalname) || '.jpg').toLowerCase();
+    const cleanId = leaderId ? String(leaderId).trim().replace(/^#/, '') : 'new';
+    const timestamp = Date.now();
+    const filename = `leader_${cleanId}_${timestamp}${ext}`;
+
+    // Write the primary timestamped file (guarantees unique URL and instant cache busting)
     fs.writeFileSync(path.join(dir, filename), file.buffer);
-    if (leaderId) {
+
+    // Also write a copy with leaderId if numeric
+    if (/^\d+$/.test(cleanId)) {
       try {
-        fs.writeFileSync(path.join(dir, `${leaderId}${ext}`), file.buffer);
+        fs.writeFileSync(path.join(dir, `${cleanId}${ext}`), file.buffer);
       } catch (_) {}
     }
+
     return `/uploads/portraits/${filename}`;
   } catch (err) {
     // In serverless / read-only filesystem environments (e.g. Vercel), save as Base64 Data URL
@@ -31,14 +100,22 @@ function savePortraitFile(file, leaderId = null) {
   }
 }
 
-// Strict Leader ID & Full Name photo matcher - NEVER matches on single words!
+// Strict Leader ID & Full Name photo matcher - used ONLY for brand new departments without photo
 function findPhotoForLeader(leaderId, headName) {
   try {
+    const cleanId = leaderId ? String(leaderId).trim().replace(/^#/, '') : '';
+
+    // If existing department has configured photo, prioritize it
+    if (cleanId) {
+      const existingDept = db.data.departments.find(d => String(d.leaderId) === cleanId);
+      if (existingDept) {
+        return existingDept.photo || '';
+      }
+    }
+
     const portraitsDir = path.join(__dirname, '..', '..', 'public', 'uploads', 'portraits');
     if (!fs.existsSync(portraitsDir)) return '';
     const availablePhotos = fs.readdirSync(portraitsDir);
-
-    const cleanId = leaderId ? String(leaderId).trim().replace(/^#/, '') : '';
 
     // 1. Exact ID match (e.g. "101.jpg", "101.png", "101.webp", "101.jpeg")
     if (cleanId) {
@@ -52,27 +129,20 @@ function findPhotoForLeader(leaderId, headName) {
         return `/uploads/portraits/${exactIdMatch}`;
       }
 
-      // 2. ID prefix match (e.g. "101_*.jpg", "101-*.jpg", "101 *.jpg")
+      // 2. ID prefix match (e.g. "leader_101_*.jpg", "101_*.jpg")
       const prefixMatch = availablePhotos.find(f => {
         const ext = path.extname(f).toLowerCase();
         const base = path.basename(f, ext).toLowerCase();
         const cLower = cleanId.toLowerCase();
-        return (base.startsWith(`${cLower}_`) || base.startsWith(`${cLower}-`) || base.startsWith(`${cLower} `)) &&
+        return (base.startsWith(`leader_${cLower}_`) || base.startsWith(`${cLower}_`) || base.startsWith(`${cLower}-`)) &&
           ['.jpg', '.jpeg', '.png', '.webp', '.svg'].includes(ext);
       });
       if (prefixMatch) {
         return `/uploads/portraits/${prefixMatch}`;
       }
-
-      // 3. Existing department photo configured in database for this specific leaderId
-      const existingDept = db.data.departments.find(d => String(d.leaderId) === cleanId);
-      if (existingDept && existingDept.photo) {
-        return existingDept.photo;
-      }
     }
 
-    // 4. Strict Full Name Match (All major words of full name must match filename)
-    // NEVER match single words like "Alisher" or "Muzaffar" to avoid cross-person assignment!
+    // 3. Strict Full Name Match
     if (headName && headName.trim().length >= 6) {
       const normHead = headName.trim().toLowerCase().replace(/['`’‘]/g, '').replace(/\s+/g, ' ');
       const headWords = normHead.split(' ').filter(w => w.length >= 3);
@@ -80,7 +150,7 @@ function findPhotoForLeader(leaderId, headName) {
         const exactNameMatch = availablePhotos.find(f => {
           const ext = path.extname(f).toLowerCase();
           const base = path.basename(f, ext);
-          if (/^\d+$/.test(base)) return false; // Ignore numeric ID files
+          if (/^\d+$/.test(base)) return false;
           const normF = base.toLowerCase().replace(/['`’‘]/g, '').replace(/\s+/g, ' ');
           return headWords.every(hw => normF.includes(hw));
         });
@@ -312,6 +382,22 @@ router.post('/tasks/bulk-delete', (req, res) => {
   res.json({ success: true, message: `${ids.length} ta topshiriq o‘chirildi.` });
 });
 
+// POST /api/admin/tasks/clear-all - Completely wipe all tasks and their statistics
+router.post('/tasks/clear-all', (req, res) => {
+  try {
+    const deletedCount = db.data.tasks.length;
+    db.data.tasks = [];
+    db.save();
+    res.json({
+      success: true,
+      deletedCount,
+      message: `Barcha ${deletedCount} ta eski topshiriq va ularning hisoboti butunlay tozalandi.`
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Topshiriqlarni tozalashda xatolik: ' + err.message });
+  }
+});
+
 // ==========================================
 // 2. EXCEL IMPORT & EXPORT
 // ==========================================
@@ -337,7 +423,6 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
     if (preferredSheet) {
       selectedSheetName = preferredSheet;
     } else {
-      // Find sheet with the largest data range
       let maxRows = 0;
       for (const sName of wb.SheetNames) {
         const s = wb.Sheets[sName];
@@ -392,14 +477,27 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
       return res.status(400).json({ error: 'Excel faylidan topshiriqlar qatorlari topilmadi.' });
     }
 
-    // Helper to get normalized value by flexible column aliases
+    // Advanced column extractor with Latin, Cyrillic and whitespace/punctuation resilience
     function getColValue(row, aliases) {
       const rowKeys = Object.keys(row);
+      const clean = str => String(str || '').toLowerCase().replace(/[\s\r\n_.\-—–'"`’‘/№#]/g, '');
+
+      // 1. Direct normalized match
       for (const alias of aliases) {
-        const normAlias = alias.toLowerCase().replace(/['`’‘]/g, '').trim();
+        const cleanAlias = clean(alias);
+        const foundKey = rowKeys.find(k => clean(k) === cleanAlias);
+        if (foundKey && String(row[foundKey]).trim() !== '') {
+          return String(row[foundKey]).trim();
+        }
+      }
+
+      // 2. Substring match for compound titles
+      for (const alias of aliases) {
+        const cleanAlias = clean(alias);
+        if (cleanAlias.length < 4) continue;
         const foundKey = rowKeys.find(k => {
-          const normKey = k.toLowerCase().replace(/['`’‘]/g, '').trim();
-          return normKey === normAlias;
+          const ck = clean(k);
+          return ck.includes(cleanAlias) || cleanAlias.includes(ck);
         });
         if (foundKey && String(row[foundKey]).trim() !== '') {
           return String(row[foundKey]).trim();
@@ -408,12 +506,17 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
       return '';
     }
 
-    // Departments lookup maps
+    // Lookup caches for existing departments
     const deptMapById = new Map();
     const deptMapByName = new Map();
+    const deptMapByHead = new Map();
+
     db.data.departments.forEach(d => {
       if (d.leaderId) deptMapById.set(String(d.leaderId).trim(), d);
       deptMapByName.set(d.name.toLowerCase().replace(/['`’‘]/g, '').trim(), d);
+      if (d.headName && d.headName.length > 5) {
+        deptMapByHead.set(d.headName.toLowerCase().replace(/['`’‘]/g, '').trim(), d);
+      }
     });
 
     const newTasks = [];
@@ -422,29 +525,37 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
     rawRows.forEach((row, idx) => {
       // 1. Leader / Employee ID
       const rawLeaderId = getColValue(row, [
-        'Rahbar ID', 'Rahbar ID raqami', 'Rahbar IDsi', 'Rahbar_ID', 'Leader ID', 'Leader_ID', 'LeaderID',
-        'Mas’ul ID', 'Mas\'ul ID', 'Masul ID', 'Xodim ID', 'Hodim ID', 'Xodim ID raqami', 'Hodim ID raqami',
-        'Tabel raqami', 'Tabel', 'ID raqam', 'ID raqami', 'Xodim_ID', 'Hodim_ID', 'ID'
+        'Rahbar ID', 'Раҳбар ID', 'Rahbar ID raqami', 'Раҳбар ID рақами', 'Rahbar IDsi', 'Rahbar_ID',
+        'Leader ID', 'Leader_ID', 'LeaderID', 'Mas’ul ID', 'Масъул ID', 'Mas\'ul ID', 'Masul ID',
+        'Xodim ID', 'Ходим ID', 'Hodim ID', 'Tabel raqami', 'Табел рақами', 'Tabel', 'Табел', 'ID raqam', 'ID', '№'
       ]).replace(/^#/, '');
 
       // 2. Department name
       const deptName = getColValue(row, [
-        'Mas’ul boshqarma', 'Mas\'ul boshqarma', 'Masul boshqarma', 'Boshqarma nomi', 'Boshqarma',
-        'Bo‘lim', 'Bo\'lim', 'Bolim', 'Boshqarma / Bo‘lim', 'Tashkilot', 'Tarkibiy tuzilma', 'Lavozimi'
+        'Mas’ul boshqarma', 'Масъул бошқарма', 'Mas\'ul boshqarma', 'Masul boshqarma',
+        'Boshqarma nomi', 'Бошқарма номи', 'Boshqarma', 'Бошқарма',
+        'Bo‘lim', 'Бўлим', 'Bo\'lim', 'Bolim', 'Болим',
+        'Boshqarma / Bo‘lim', 'Tashkilot', 'Ташкилот', 'Tarkibiy tuzilma', 'Таркибий тузилма', 'Lavozimi'
       ]);
 
       // 3. Responsible person / Head name
       const headName = getColValue(row, [
-        'Mas’ul ijrochi', 'Mas\'ul ijrochi', 'Masul ijrochi', 'Mas’ul rahbar', 'Mas\'ul rahbar',
-        'Mas’ul xodim', 'Mas\'ul xodim', 'Masul xodim', 'Ijrochi', 'Mas’ul', 'Mas\'ul', 'Masul',
-        'Rahbar', 'Rahbar F.I.SH', 'F.I.SH.', 'F.I.SH', 'FISH', 'F.I.O.', 'F.I.O', 'FIO',
-        'Xodim F.I.SH', 'Hodim F.I.SH', 'Xodim', 'Hodim'
+        'Mas’ul ijrochi', 'Масъул ижрочи', 'Mas\'ul ijrochi', 'Masul ijrochi',
+        'Mas’ul rahbar', 'Масъул раҳбар', 'Mas\'ul rahbar',
+        'Mas’ul xodim', 'Масъул ходим', 'Mas\'ul xodim', 'Ijrochi', 'Ижрочи',
+        'Mas’ul', 'Масъул', 'Mas\'ul', 'Masul',
+        'Rahbar', 'Раҳбар', 'Rahbar F.I.SH', 'Раҳбар Ф.И.Ш',
+        'F.I.SH.', 'Ф.И.Ш.', 'F.I.SH', 'Ф.И.Ш', 'FISH', 'ФИШ',
+        'F.I.O.', 'Ф.И.О.', 'F.I.O', 'Ф.И.О', 'FIO', 'ФИО',
+        'Xodim F.I.SH', 'Ходим Ф.И.Ш', 'Hodim F.I.SH', 'Xodim', 'Ходим', 'Hodim'
       ]);
 
       // 4. Task title / content
       const title = getColValue(row, [
-        'Topshiriq mazmuni', 'Topshiriq matni', 'Topshiriq', 'Mazmuni', 'Ijro mazmuni',
-        'Hujjat raqami va sanasi', 'Hujjat raqami', 'Topshiriq qisqacha mazmuni'
+        'Topshiriq mazmuni', 'Топшириқ мазмуни', 'Topshiriq matni', 'Топшириқ матни',
+        'Topshiriq', 'Топшириқ', 'Mazmuni', 'Мазмуни', 'Ijro mazmuni', 'Ижро мазмуни',
+        'Hujjat raqami va sanasi', 'Ҳужжат рақами ва санаси', 'Hujjat raqami', 'Ҳужжат рақами',
+        'Hujjat', 'Ҳужжат', 'Topshiriq qisqacha mazmuni'
       ]);
 
       // If all critical fields are empty, skip empty row
@@ -452,19 +563,21 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
 
       // 5. Task Number / ID
       let taskNumber = getColValue(row, [
-        'Topshiriq ID', 'Topshiriq raqami', 'Topshiriq №', '№', 'T/r', 'T/r.', 'T/r ', 'TR', 'Tartib raqam', 'Raqami'
+        'Topshiriq ID', 'Топшириқ ID', 'Topshiriq raqami', 'Топшириқ рақами', 'Topshiriq №', 'Топшириқ №',
+        '№', 'T/r', 'Т/р', 'T/r.', 'Т/р.', 'TR', 'Tartib raqam', 'Raqami', 'Рақами'
       ]);
       if (!taskNumber) taskNumber = `№${idx + 1}`;
 
       // 6. Deadline
       const rawDate = getColValue(row, [
-        'Ijro muddati', 'Topshiriq muddati', 'Muddati', 'Muddat', 'Belgilangan muddat',
-        'Ijro sanasi', 'Sana', 'Yakunlash sanasi', 'Berilgan sana'
+        'Ijro muddati', 'Ижро муддати', 'Topshiriq muddati', 'Топшириқ муддати',
+        'Muddati', 'Муддати', 'Muddat', 'Муддат', 'Belgilangan muddat', 'Белгиланган муддат',
+        'Ijro sanasi', 'Ижро санаси', 'Sana', 'Сана', 'Yakunlash sanasi', 'Якунлаш санаси', 'Berilgan sana'
       ]);
       const deadline = parseTaskDate(rawDate) || new Date().toISOString().split('T')[0];
 
       // 7. Status
-      const rawStatus = getColValue(row, ['Holati', 'Holat', 'Status', 'Ijro holati', 'Natija']);
+      const rawStatus = getColValue(row, ['Holati', 'Ҳолати', 'Holat', 'Ҳолат', 'Status', 'Статус', 'Ijro holati', 'Ижро ҳолати', 'Natija', 'Натижа']);
       const initialStatus = determineStatus(rawStatus, deadline);
       const initialDelayDays = calculateDelayDays(deadline);
 
@@ -477,11 +590,11 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
       const computed = computeTaskStatus(candidateTask);
 
       // 8. Document & Task type, Notes
-      const docType = getColValue(row, ['Hujjat turi', 'Turi', 'Hujjat']) || 'Hujjat';
-      const taskType = getColValue(row, ['Topshiriq turi', 'Topshiriq yo‘nalishi', 'Topshiriq toifasi']) || 'Ijro topshirig‘i';
-      const notes = getColValue(row, ['Izoh', 'Qayd', 'Izohlar', 'Eslatma']);
+      const docType = getColValue(row, ['Hujjat turi', 'Ҳужжат тури', 'Turi', 'Тури', 'Hujjat', 'Ҳужжат']) || 'Hujjat';
+      const taskType = getColValue(row, ['Topshiriq turi', 'Топшириқ тури', 'Topshiriq yo‘nalishi', 'Topshiriq toifasi']) || 'Ijro topshirig‘i';
+      const notes = getColValue(row, ['Izoh', 'Изоҳ', 'Qayd', 'Қайд', 'Izohlar', 'Eslatma', 'Эслатма']);
 
-      // 9. Department and Leader Resolution - STRICTLY BY ID!
+      // 9. Department and Leader Resolution
       let dept = null;
 
       if (rawLeaderId) {
@@ -493,22 +606,25 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
         dept = deptMapByName.get(normDName);
       }
 
+      if (!dept && headName && headName.length > 5) {
+        const normHName = headName.toLowerCase().replace(/['`’‘]/g, '').trim();
+        dept = deptMapByHead.get(normHName);
+      }
+
       if (dept) {
-        // Update department information from current Excel
+        // Update department name or headName if updated in Excel
         if (deptName && deptName !== '-' && (!dept.name || dept.name.startsWith('Boshqarma #') || dept.name !== deptName)) {
           dept.name = deptName;
           deptMapByName.set(dept.name.toLowerCase().replace(/['`’‘]/g, '').trim(), dept);
         }
         if (headName && (!dept.headName || dept.headName === 'Mas’ul rahbar' || dept.headName !== headName)) {
           dept.headName = headName;
+          deptMapByHead.set(dept.headName.toLowerCase().replace(/['`’‘]/g, '').trim(), dept);
         }
-        // Strict photo check: strictly for this department's ID / full name
-        const matchedPhoto = findPhotoForLeader(dept.leaderId, dept.headName);
-        if (matchedPhoto) {
-          dept.photo = matchedPhoto;
-        }
+        // IMPORTANT: Existing department photos are strictly maintained by admin in Admin Panel.
+        // DO NOT overwrite or revert dept.photo during Excel import!
       } else {
-        // Auto-create department
+        // Auto-create department only if not found
         let autoLeaderId = rawLeaderId && /^\d+$/.test(rawLeaderId)
           ? parseInt(rawLeaderId, 10)
           : db.getNextLeaderId();
@@ -531,6 +647,9 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
         db.data.departments.push(dept);
         deptMapById.set(String(dept.leaderId), dept);
         deptMapByName.set(dept.name.toLowerCase().replace(/['`’‘]/g, '').trim(), dept);
+        if (dept.headName && dept.headName.length > 5) {
+          deptMapByHead.set(dept.headName.toLowerCase().replace(/['`’‘]/g, '').trim(), dept);
+        }
         addedDeptsCount++;
       }
 
@@ -560,20 +679,27 @@ router.post('/tasks/import-excel', handleExcelUpload, (req, res) => {
       return res.status(400).json({ error: 'Excel faylidan birorta ham topshiriq o‘qib bo‘lmadi. Ustunlar nomini tekshiring.' });
     }
 
-    // MANDATORY REQUIREMENT 1:
-    // Completely wipe old tasks and replace with ONLY the new import!
+    // MANDATORY REQUIREMENT:
+    // Completely wipe old tasks so NO old data or old report remains!
     db.data.tasks = newTasks;
 
-    // Recalculate all task statuses according to deadlines
-    db.syncTasksStatus(true);
+    // Recalculate all newly imported task statuses without disk reload
+    db.syncTasksStatus(false);
     db.save();
+
+    const overdueCount = db.data.tasks.filter(t => t.status === 'overdue').length;
+    const inProgressCount = db.data.tasks.filter(t => t.status === 'in_progress').length;
+    const completedCount = db.data.tasks.filter(t => t.status === 'completed').length;
 
     res.json({
       success: true,
       importedCount: newTasks.length,
       addedDeptsCount,
       totalTasks: db.data.tasks.length,
-      message: `Muvaffaqiyatli import qilindi: ${newTasks.length} ta topshiriq. Eski ma’lumotlar avtomatik tozalandi.`
+      overdueTasks: overdueCount,
+      inProgressTasks: inProgressCount,
+      completedTasks: completedCount,
+      message: `Muvaffaqiyatli import qilindi: ${newTasks.length} ta topshiriq. Barcha eski topshiriqlar va ularning hisoboti butunlay tozalandi.`
     });
   } catch (err) {
     console.error('Import excel error:', err);
@@ -758,7 +884,7 @@ router.post('/departments', handlePortraitUpload, (req, res) => {
 
     let photoUrl = '';
     if (req.file) {
-      photoUrl = savePortraitFile(req.file, assignedLeaderId);
+      photoUrl = savePortraitFile(req.file, assignedLeaderId, headName, '');
     }
 
     const newDept = {
@@ -798,11 +924,14 @@ router.put('/departments/:id', handlePortraitUpload, (req, res) => {
     }
 
     let photoUrl = currentDept.photo;
+    // When deleting photo, delete physical portrait files from disk so it never returns
     if (deletePhoto === 'true' || deletePhoto === true || deletePhoto === '1') {
+      deleteLeaderPortraits(updatedLeaderId, currentDept.headName, currentDept.photo);
       photoUrl = '';
     }
+    // When uploading a new photo, clean up old file and save new unique photo
     if (req.file) {
-      photoUrl = savePortraitFile(req.file, updatedLeaderId);
+      photoUrl = savePortraitFile(req.file, updatedLeaderId, headName || currentDept.headName, currentDept.photo);
     }
 
     const updatedDept = {
@@ -828,7 +957,7 @@ router.put('/departments/:id', handlePortraitUpload, (req, res) => {
     });
 
     db.save();
-    res.json({ success: true, department: updatedDept, message: 'Boshqarma muvaffaqiyatli yangilandi.' });
+    res.json({ success: true, department: updatedDept, message: 'Boshqarma va fotosurat muvaffaqiyatli yangilandi.' });
   } catch (err) {
     res.status(500).json({ error: 'Boshqarma yangilashda xatolik: ' + err.message });
   }
@@ -839,10 +968,14 @@ router.delete('/departments/:id', (req, res) => {
   const index = db.data.departments.findIndex(d => d.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'Boshqarma topilmadi.' });
 
+  const currentDept = db.data.departments[index];
   const hasTasks = db.data.tasks.some(t => t.departmentId === req.params.id);
   if (hasTasks) {
     return res.status(400).json({ error: 'Ushbu boshqarmaga biriktirilgan topshiriqlar mavjud. Avval ularni ko‘chiring yoki o‘chiring.' });
   }
+
+  // Delete physical portrait files from disk
+  deleteLeaderPortraits(currentDept.leaderId, currentDept.headName, currentDept.photo);
 
   db.data.departments.splice(index, 1);
   db.save();

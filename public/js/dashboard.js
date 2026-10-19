@@ -200,6 +200,14 @@
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
+  // Helper for Cache-busted Photo URL
+  function getPhotoUrl(photo, updatedAt) {
+    if (!photo) return '';
+    const cleanUrl = photo.split('?')[0];
+    const v = updatedAt ? new Date(updatedAt).getTime() : Date.now();
+    return `${cleanUrl}?v=${v}`;
+  }
+
   // Render Department Cards
   function renderDepartmentCards(departments) {
     if (!departments || departments.length === 0) {
@@ -213,8 +221,9 @@
 
     deptCardsContainer.innerHTML = departments.map(dept => {
       const initials = getInitials(dept.headName);
-      const portraitHtml = dept.photo
-        ? `<img src="${dept.photo}" alt="${dept.headName}" class="portrait-img" onerror="this.outerHTML='<div class=\\'avatar-initials\\'>${initials}</div>'">`
+      const photoUrl = dept.photo ? getPhotoUrl(dept.photo, dept.updatedAt) : '';
+      const portraitHtml = photoUrl
+        ? `<img src="${photoUrl}" alt="${dept.headName}" class="portrait-img" onerror="this.outerHTML='<div class=\\'avatar-initials\\'>${initials}</div>'">`
         : `<div class="avatar-initials">${initials}</div>`;
 
       return `

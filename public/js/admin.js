@@ -11,6 +11,13 @@
   // Selected file for Excel import
   let selectedExcelFile = null;
 
+  // Cache-busting photo URL generator
+  function getPhotoUrl(photo, updatedAt) {
+    if (!photo) return '';
+    const v = updatedAt ? new Date(updatedAt).getTime() : Date.now();
+    return `${photo}${photo.includes('?') ? '&' : '?'}v=${v}`;
+  }
+
   // Init
   async function init() {
     await checkAdminAuth();
@@ -286,6 +293,26 @@
       if (!res.ok) throw new Error(data.error || 'O‘chirishda xatolik');
       showToast(data.message || 'Topshiriq o‘chirildi', 'success');
       await loadTasks();
+      await loadDepartmentsList();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  // Clear all tasks completely
+  async function clearAllTasks() {
+    if (!confirm('DIQQAT! Haqiqatan ham bazadagi barcha topshiriqlarni butunlay o‘chirib tozalashni xohlaysizmi?\n\nUshbu amal barcha eski topshiriqlar va hisobotlarni 0 ga tushiradi.')) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/tasks/clear-all', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Tozalashda xatolik');
+      showToast(data.message || 'Barcha topshiriqlar tozalandi', 'success');
+      taskPage = 1;
+      await loadTasks();
+      await loadDepartmentsForSelect();
+      await loadDepartmentsList();
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -300,6 +327,15 @@
     const fileInput = document.getElementById('excel-file-input');
     const startImportBtn = document.getElementById('start-import-btn');
     const importStatusBox = document.getElementById('import-status-box');
+    const clearExcelTabBtn = document.getElementById('clear-tasks-from-excel-tab-btn');
+    const clearAllTasksBtn = document.getElementById('clear-all-tasks-btn');
+
+    if (clearExcelTabBtn) {
+      clearExcelTabBtn.addEventListener('click', clearAllTasks);
+    }
+    if (clearAllTasksBtn) {
+      clearAllTasksBtn.addEventListener('click', clearAllTasks);
+    }
 
     dropzone.addEventListener('click', () => fileInput.click());
 
@@ -376,13 +412,14 @@
         importStatusBox.style.color = '#065f46';
         importStatusBox.innerHTML = `
           <strong>✅ Muvaffaqiyatli import qilindi!</strong><br>
-          • Qo‘shilgan topshiriqlar: <strong>${data.importedCount} ta</strong><br>
-          • Yangi ochilgan boshqarmalar: <strong>${data.addedDeptsCount} ta</strong><br>
-          • Bazadagi jami topshiriqlar: <strong>${data.totalTasks} ta</strong><br>
-          <span style="font-size: 12px; color: #047857;">💡 Eski topshiriqlar to‘liq tozalandi. Monitoring dashboardida faqat ushbu yangi fayl aks etadi.</span>
+          • Yangi yuklangan topshiriqlar: <strong>${data.importedCount} ta</strong> (Jami bazada: <strong>${data.totalTasks} ta</strong>)<br>
+          • Muddati o‘tgan topshiriqlar: <strong style="color: #dc2626;">${data.overdueTasks || 0} ta</strong><br>
+          • Bajarish jarayonida: <strong style="color: #2563eb;">${data.inProgressTasks || 0} ta</strong><br>
+          <span style="font-size: 12px; color: #047857; font-weight: 600;">✨ Barcha eski topshiriqlar va ularning hisoboti to‘liq tozalandi. Dashboard faqat ushbu yangi fayl hisobotini aks ettiradi.</span>
         `;
 
         showToast(data.message, 'success');
+        taskPage = 1;
         await loadDepartmentsForSelect();
         await loadTasks();
         await loadDepartmentsList();
@@ -422,8 +459,9 @@
 
       adminDeptListContainer.innerHTML = depts.map(d => {
         const initials = d.headName ? d.headName.split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase() : 'B';
+        const photoUrl = getPhotoUrl(d.photo, d.updatedAt);
         const photoHtml = d.photo
-          ? `<img src="${d.photo}" alt="${d.headName}" style="width: 64px; height: 64px; border-radius: 14px; object-fit: cover;">`
+          ? `<img src="${photoUrl}" alt="${d.headName}" style="width: 64px; height: 64px; border-radius: 14px; object-fit: cover;">`
           : `<div style="width: 64px; height: 64px; border-radius: 14px; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #475569; font-size: 18px;">${initials}</div>`;
 
         return `
@@ -472,6 +510,41 @@
     }
   }
 
+  function setupDeptPhotoInput(onReset = null) {
+    const photoInput = document.getElementById('form-dept-photo');
+    const preview = document.getElementById('dept-photo-preview');
+    if (!photoInput) return;
+
+    photoInput.onchange = () => {
+      if (photoInput.files && photoInput.files[0]) {
+        const file = photoInput.files[0];
+        document.getElementById('form-dept-delete-photo').value = 'false';
+        const objectUrl = URL.createObjectURL(file);
+        preview.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 12px 14px; margin-top: 6px;">
+            <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+              <img src="${objectUrl}" alt="Yangi rasm" style="width: 58px; height: 58px; border-radius: 12px; object-fit: cover; border: 2px solid #22c55e; flex-shrink: 0;">
+              <div style="min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #15803d;">Yangi fotosurat tanlandi!</div>
+                <div style="font-size: 11.5px; color: #166534; word-break: break-all;">${file.name} (${Math.round(file.size / 1024)} KB)</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">«Saqlash» tugmasini bosganingizda rasm yangilanadi</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary" id="reset-new-photo-btn" style="padding: 5px 10px; font-size: 11.5px; flex-shrink: 0;">Bekor qilish</button>
+          </div>
+        `;
+        const resetBtn = document.getElementById('reset-new-photo-btn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', () => {
+            photoInput.value = '';
+            if (typeof onReset === 'function') onReset();
+            else preview.innerHTML = '';
+          });
+        }
+      }
+    };
+  }
+
   async function openAddDeptModal() {
     document.getElementById('dept-modal-heading').textContent = 'Yangi boshqarma va rahbar qo‘shish';
     document.getElementById('dept-id').value = '';
@@ -480,6 +553,8 @@
     document.getElementById('dept-photo-preview').innerHTML = '';
     const tag = document.getElementById('auto-id-tag');
     if (tag) tag.textContent = 'Avtomatik berildi';
+
+    setupDeptPhotoInput();
 
     // Fetch automatic next ID
     try {
@@ -509,70 +584,77 @@
     document.getElementById('form-dept-delete-photo').value = 'false';
 
     const preview = document.getElementById('dept-photo-preview');
-    if (dept.photo) {
-      preview.innerHTML = `
-        <div id="dept-photo-active-box" style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; margin-top: 6px;">
-          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-            <img src="${dept.photo}" alt="${dept.headName}" style="width: 58px; height: 58px; border-radius: 12px; object-fit: cover; border: 1.5px solid #cbd5e1; box-shadow: 0 2px 6px rgba(0,0,0,0.06); flex-shrink: 0;">
-            <div style="min-width: 0;">
-              <div style="font-size: 13px; font-weight: 700; color: #0f172a;">Joriy fotosurat mavjud</div>
-              <div style="font-size: 11.5px; color: #64748b;">O‘chirish yoki yangi rasm yuklash mumkin</div>
-            </div>
-          </div>
-          <button type="button" class="btn btn-danger" id="delete-dept-photo-btn" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-            <span>Rasmni o‘chirish</span>
-          </button>
-        </div>
-      `;
 
-      // Attach listener to delete photo button
-      const delBtn = document.getElementById('delete-dept-photo-btn');
-      if (delBtn) {
-        delBtn.addEventListener('click', () => {
-          document.getElementById('form-dept-delete-photo').value = 'true';
-          document.getElementById('form-dept-photo').value = '';
-          preview.innerHTML = `
-            <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 14px; padding: 13px 15px; margin-top: 6px;">
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <span style="font-size: 22px;">🗑️</span>
-                  <div>
-                    <div style="font-size: 13px; font-weight: 700; color: #dc2626;">Eski fotosurat o‘chirildi!</div>
-                    <div style="font-size: 11.5px; color: #7f1d1d;">Barcha ma’lumotlarni bazada saqlash uchun «Saqlash» tugmasini bosing:</div>
-                  </div>
-                </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <button type="button" class="btn btn-secondary" id="cancel-delete-photo-btn" style="padding: 6px 12px; font-size: 12px;">
-                    Qaytarish
-                  </button>
-                  <button type="button" class="btn btn-primary" id="instant-save-photo-btn" style="padding: 6px 16px; font-size: 12.5px; font-weight: 700; background: #16a34a; border-color: #15803d; color: #ffffff; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Saqlash</span>
-                  </button>
-                </div>
+    function renderCurrentPhotoPreview() {
+      if (dept.photo) {
+        const photoUrl = getPhotoUrl(dept.photo, dept.updatedAt);
+        preview.innerHTML = `
+          <div id="dept-photo-active-box" style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; margin-top: 6px;">
+            <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+              <img src="${photoUrl}" alt="${dept.headName}" style="width: 58px; height: 58px; border-radius: 12px; object-fit: cover; border: 1.5px solid #cbd5e1; box-shadow: 0 2px 6px rgba(0,0,0,0.06); flex-shrink: 0;">
+              <div style="min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #0f172a;">Joriy fotosurat mavjud</div>
+                <div style="font-size: 11.5px; color: #64748b;">O‘chirish yoki yangi rasm yuklash mumkin</div>
               </div>
             </div>
-          `;
+            <button type="button" class="btn btn-danger" id="delete-dept-photo-btn" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              <span>Rasmni o‘chirish</span>
+            </button>
+          </div>
+        `;
 
-          const cancelBtn = document.getElementById('cancel-delete-photo-btn');
-          if (cancelBtn) {
-            cancelBtn.addEventListener('click', () => {
-              openEditDeptModal(deptId);
-            });
-          }
+        const delBtn = document.getElementById('delete-dept-photo-btn');
+        if (delBtn) {
+          delBtn.addEventListener('click', () => {
+            document.getElementById('form-dept-delete-photo').value = 'true';
+            document.getElementById('form-dept-photo').value = '';
+            preview.innerHTML = `
+              <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 14px; padding: 13px 15px; margin-top: 6px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 22px;">🗑️</span>
+                    <div>
+                      <div style="font-size: 13px; font-weight: 700; color: #dc2626;">Eski fotosurat o‘chirildi!</div>
+                      <div style="font-size: 11.5px; color: #7f1d1d;">Barcha ma’lumotlarni bazada saqlash uchun «Saqlash» tugmasini bosing:</div>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <button type="button" class="btn btn-secondary" id="cancel-delete-photo-btn" style="padding: 6px 12px; font-size: 12px;">
+                      Qaytarish
+                    </button>
+                    <button type="button" class="btn btn-primary" id="instant-save-photo-btn" style="padding: 6px 16px; font-size: 12.5px; font-weight: 700; background: #16a34a; border-color: #15803d; color: #ffffff; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span>Saqlash</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
 
-          const saveBtn = document.getElementById('instant-save-photo-btn');
-          if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-              deptForm.requestSubmit();
-            });
-          }
-        });
+            const cancelBtn = document.getElementById('cancel-delete-photo-btn');
+            if (cancelBtn) {
+              cancelBtn.addEventListener('click', () => {
+                document.getElementById('form-dept-delete-photo').value = 'false';
+                renderCurrentPhotoPreview();
+              });
+            }
+
+            const saveBtn = document.getElementById('instant-save-photo-btn');
+            if (saveBtn) {
+              saveBtn.addEventListener('click', () => {
+                deptForm.requestSubmit();
+              });
+            }
+          });
+        }
+      } else {
+        preview.innerHTML = '<div style="font-size: 12px; color: #94a3b8; padding: 8px 0;">Hozircha fotosurat yuklanmagan</div>';
       }
-    } else {
-      preview.innerHTML = '<div style="font-size: 12px; color: #94a3b8; padding: 8px 0;">Hozircha fotosurat yuklanmagan</div>';
     }
+
+    renderCurrentPhotoPreview();
+    setupDeptPhotoInput(() => renderCurrentPhotoPreview());
 
     openAdminModal('dept-form-modal');
   }

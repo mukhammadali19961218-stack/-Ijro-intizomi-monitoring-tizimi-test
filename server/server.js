@@ -26,13 +26,14 @@ const publicDir = fs.existsSync(path.join(__dirname, '..', 'public'))
 // Disable ETag globally to prevent 304 caching
 app.set('etag', false);
 
-// Static files (CSS, JS, images, uploads) with no-cache for scripts
+// Static files (CSS, JS, images, uploads) with no-cache to guarantee updated photos & scripts
 app.use(express.static(publicDir, {
   etag: false,
   setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
-      res.set('Cache-Control', 'no-cache, must-revalidate');
+    if (filePath.endsWith('.js') || filePath.endsWith('.css') || filePath.includes('uploads') || filePath.includes('portraits') || filePath.match(/\.(jpg|jpeg|png|webp|svg)$/i)) {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
       res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
     }
   }
 }));
