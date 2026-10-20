@@ -28,13 +28,14 @@
     await loadDepartmentsList();
     await loadUsers();
     await loadSettings();
+    await loadActiveDatasetInfo();
     bindEvents();
   }
 
   // Auth Check
   async function checkAdminAuth() {
     try {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/auth/me', { cache: 'no-store' });
       if (!res.ok) {
         window.location.href = '/login?redirect=/admin';
         return;
@@ -67,6 +68,7 @@
 
         // Auto reload if switching
         if (target === 'tab-tasks') loadTasks();
+        if (target === 'tab-excel') loadActiveDatasetInfo();
         if (target === 'tab-departments') loadDepartmentsList();
         if (target === 'tab-users') loadUsers();
         if (target === 'tab-settings') loadSettings();
@@ -92,12 +94,23 @@
   // Modal Helpers
   window.openAdminModal = function (modalId) {
     const el = document.getElementById(modalId);
-    if (el) el.classList.add('active');
+    if (el) {
+      el.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      const body = el.querySelector('.modal-body');
+      if (body) body.scrollTop = 0;
+    }
   };
 
   window.closeAdminModal = function (modalId) {
     const el = document.getElementById(modalId);
-    if (el) el.classList.remove('active');
+    if (el) {
+      el.classList.remove('active');
+      const anyActive = document.querySelector('.modal-overlay.active');
+      if (!anyActive) {
+        document.body.style.overflow = '';
+      }
+    }
   };
 
   // ==========================================
@@ -229,7 +242,7 @@
 
   async function openEditTaskModal(taskId) {
     try {
-      const res = await fetch(`/api/tasks/${taskId}`);
+      const res = await fetch(`/api/tasks/${taskId}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Topshiriq topilmadi');
       const t = await res.json();
 
@@ -438,6 +451,7 @@
         await loadDepartmentsForSelect();
         await loadTasks();
         await loadDepartmentsList();
+        await loadActiveDatasetInfo();
         notifyDashboardUpdate();
 
       } catch (err) {
@@ -451,6 +465,37 @@
         startImportBtn.textContent = 'Excel faylini yuklash va import qilish';
       }
     });
+  }
+
+  async function loadActiveDatasetInfo() {
+    try {
+      const res = await fetch('/api/admin/imports', { cache: 'no-store' });
+      if (!res.ok) return;
+      const history = await res.json();
+      const badge = document.getElementById('active-dataset-version-badge');
+      const filenameEl = document.getElementById('active-dataset-filename');
+      const timeEl = document.getElementById('active-dataset-time');
+      const userEl = document.getElementById('active-dataset-user');
+      const rowsEl = document.getElementById('active-dataset-rows');
+
+      if (!history || history.length === 0) {
+        if (badge) badge.textContent = 'Bazada ma’lumot yo‘q';
+        if (filenameEl) filenameEl.textContent = 'Mavjud emas';
+        if (timeEl) timeEl.textContent = '-';
+        if (userEl) userEl.textContent = '-';
+        if (rowsEl) rowsEl.textContent = '0 ta';
+        return;
+      }
+
+      const latest = history[0];
+      if (badge) badge.textContent = `Versiya #${latest.version || 1}`;
+      if (filenameEl) filenameEl.textContent = latest.filename || '-';
+      if (timeEl) timeEl.textContent = latest.importedAt ? new Date(latest.importedAt).toLocaleString('uz-UZ') : '-';
+      if (userEl) userEl.textContent = latest.importedBy || 'Administrator';
+      if (rowsEl) rowsEl.textContent = `${latest.rowCount || 0} ta topshiriq`;
+    } catch (err) {
+      console.warn('Error loading active dataset info:', err.message);
+    }
   }
 
   // ==========================================
@@ -574,7 +619,7 @@
 
     // Fetch automatic next ID
     try {
-      const res = await fetch('/api/admin/departments/next-id');
+      const res = await fetch('/api/admin/departments/next-id', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         document.getElementById('form-dept-leader-id').value = data.nextId || '';
@@ -739,7 +784,7 @@
 
   async function loadUsers() {
     try {
-      const res = await fetch('/api/admin/users');
+      const res = await fetch('/api/admin/users', { cache: 'no-store' });
       if (!res.ok) throw new Error('Foydalanuvchilar olinmadi');
       usersCache = await res.json();
 
@@ -857,17 +902,15 @@
   const settingOrgName = document.getElementById('setting-org-name');
   const settingSubOrgName = document.getElementById('setting-sub-org-name');
   const settingSystemTitle = document.getElementById('setting-system-title');
-  const settingRefreshInterval = document.getElementById('setting-refresh-interval');
 
   async function loadSettings() {
     try {
-      const res = await fetch('/api/admin/settings');
+      const res = await fetch('/api/admin/settings', { cache: 'no-store' });
       if (res.ok) {
         const s = await res.json();
         settingOrgName.value = s.orgName || '';
         settingSubOrgName.value = s.subOrgName || '';
         settingSystemTitle.value = s.systemTitle || '';
-        settingRefreshInterval.value = s.autoRefreshInterval || 60;
         document.getElementById('admin-org-subtitle').textContent = s.subOrgName || 'Ijro intizomi monitoring va nazorat tizimi';
       }
     } catch (err) {
@@ -884,8 +927,7 @@
         body: JSON.stringify({
           orgName: settingOrgName.value.trim(),
           subOrgName: settingSubOrgName.value.trim(),
-          systemTitle: settingSystemTitle.value.trim(),
-          autoRefreshInterval: parseInt(settingRefreshInterval.value, 10)
+          systemTitle: settingSystemTitle.value.trim()
         })
       });
 
@@ -948,6 +990,24 @@
     document.getElementById('admin-logout-btn').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/login';
+    });
+
+    // Close admin modals on backdrop click or ESC key
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          closeAdminModal(overlay.id);
+        }
+      });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const activeModal = document.querySelector('.modal-overlay.active');
+        if (activeModal) {
+          closeAdminModal(activeModal.id);
+        }
+      }
     });
   }
 

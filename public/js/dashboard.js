@@ -4,14 +4,14 @@
   'use strict';
 
   // State
-  // State - Always start at page 1 on refresh so critical overdue departments are immediately visible
   let currentPage = 1;
   let totalPages = 1;
+  const PAGE_SIZE = 3;
+  let allOverdueDepartments = [];
   let currentUser = null;
-  let autoRefreshTimer = null;
   let rotationTimer = null;
   let isHovered = false;
-  const ROTATION_INTERVAL = 5000; // Har 5 sekundda almashish
+  const ROTATION_INTERVAL = 5000; // Carousel visual rotation interval
 
   let modalFilter = {
     status: 'all',
@@ -20,9 +20,6 @@
     page: 1,
     pageSize: 15
   };
-
-  let lastStatsSnapshot = { total: -1, inProgress: -1, overdue: -1 };
-  let lastKnownLastUpdated = null;
 
   // DOM Elements
   const metricTotalNum = document.getElementById('metric-total-num');
@@ -36,8 +33,6 @@
   const pageIndicatorText = document.getElementById('page-indicator-text');
   const paginationDots = document.getElementById('pagination-dots');
 
-  const liveIndicator = document.getElementById('live-indicator');
-  const liveIndicatorText = document.getElementById('live-indicator-text');
   const fullscreenBtn = document.getElementById('fullscreen-btn');
   const fullscreenText = document.getElementById('fullscreen-text');
   const adminLinkBtn = document.getElementById('admin-link-btn');
@@ -59,23 +54,24 @@
   const modalNextBtn = document.getElementById('modal-next-btn');
   const modalPageText = document.getElementById('modal-page-text');
 
-  // Initialize
+  // Initialize - Single controlled data load
   async function init() {
     await checkAuth();
     await loadSettings();
-    await fetchStats();
-    await fetchDepartments(1);
-    await loadDepartmentOptions();
+    await Promise.all([
+      fetchStats(),
+      fetchDepartments(),
+      loadDepartmentOptions()
+    ]);
     bindEvents();
-    setupLiveSyncListeners();
-    startAutoRefresh();
+    setupCrossTabSync();
     startRotationTimer();
   }
 
   // Check Authentication
   async function checkAuth() {
     try {
-      const res = await fetch(`/api/auth/me?_t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch('/api/auth/me', { cache: 'no-store' });
       if (!res.ok) {
         window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
         return;
@@ -98,7 +94,7 @@
   // Load Settings
   async function loadSettings() {
     try {
-      const res = await fetch(`/api/dashboard/settings?_t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch('/api/dashboard/settings', { cache: 'no-store' });
       if (res.ok) {
         const s = await res.json();
         if (s.orgName) document.getElementById('org-name-text').textContent = s.orgName.toUpperCase();
@@ -110,125 +106,73 @@
     }
   }
 
-  // Live Sync Indicator Helper
-  function indicateLiveSyncing(isSyncing) {
-    if (!liveIndicator) return;
-    if (isSyncing) {
-      liveIndicator.classList.add('syncing');
-      if (liveIndicatorText) liveIndicatorText.textContent = 'Yangilanmoqda...';
-    } else {
-      if (liveIndicatorText) liveIndicatorText.textContent = 'Yangilandi!';
-      setTimeout(() => {
-        liveIndicator.classList.remove('syncing');
-        if (liveIndicatorText) liveIndicatorText.textContent = 'Jonli yangilanadi';
-      }, 1500);
-    }
-  }
-
-  // Automatic Full Sync with reset to Page 1
-  async function autoSyncData(resetToPage1 = true, showToastNotice = false) {
-    indicateLiveSyncing(true);
-    if (resetToPage1) {
-      currentPage = 1;
-    }
-    try {
-      await Promise.all([
-        fetchStats(),
-        fetchDepartments(currentPage, false),
-        loadDepartmentOptions()
-      ]);
-      if (showToastNotice) {
-        showToast('Ma’lumotlar avtomatik yangilandi', 'success');
-      }
-    } catch (err) {
-      console.error('Auto sync error:', err);
-    } finally {
-      indicateLiveSyncing(false);
-      startRotationTimer();
-    }
-  }
-
-  // Fetch Summary Stats
+  // Fetch Summary Stats - Single load from PostgreSQL
   async function fetchStats() {
     try {
-      const res = await fetch(`/api/dashboard/stats?_t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch('/api/dashboard/stats', { cache: 'no-store' });
       if (!res.ok) throw new Error('Statistika yuklanmadi');
       const stats = await res.json();
 
-      const total = stats.totalTasks ?? 0;
-      const progress = stats.inProgressTasks ?? 0;
-      const overdue = stats.overdueTasks ?? 0;
-
-      const isInitial = lastStatsSnapshot.total === -1;
-      const hasChanged = !isInitial && (
-        lastStatsSnapshot.total !== total ||
-        lastStatsSnapshot.inProgress !== progress ||
-        lastStatsSnapshot.overdue !== overdue ||
-        (stats.lastUpdated && lastKnownLastUpdated && stats.lastUpdated !== lastKnownLastUpdated)
-      );
-
-      lastStatsSnapshot = { total, inProgress: progress, overdue };
-      if (stats.lastUpdated) lastKnownLastUpdated = stats.lastUpdated;
-
-      metricTotalNum.textContent = total;
-      metricProgressNum.textContent = progress;
-      metricOverdueNum.textContent = overdue;
-
-      // Automatically recalculate and switch to Page 1 if new Excel/data arrived!
-      if (hasChanged) {
-        currentPage = 1;
-        await fetchDepartments(1, false);
-        await loadDepartmentOptions();
-        indicateLiveSyncing(false);
-      }
+      metricTotalNum.textContent = stats.totalTasks ?? 0;
+      metricProgressNum.textContent = stats.inProgressTasks ?? 0;
+      metricOverdueNum.textContent = stats.overdueTasks ?? 0;
 
       return stats;
     } catch (err) {
       console.error('Stats error:', err);
+      showToast('Statistikani yuklashda xatolik', 'error');
     }
   }
 
-  // Fetch Departments (Paginated, 3 per page, only with overdue tasks)
-  async function fetchDepartments(page = 1, isAuto = false) {
+  // Fetch Departments from server ONCE, then paginate in memory
+  async function fetchDepartments() {
     try {
-      // onlyOverdue=true: Faqat muddati o‘tgan topshiriqlari bor boshqarmalar ko‘rsatiladi
-      const res = await fetch(`/api/dashboard/departments?page=${page}&pageSize=3&onlyOverdue=true&_t=${Date.now()}`, { cache: 'no-store' });
+      // Load departments with onlyOverdue=true from database
+      const res = await fetch('/api/dashboard/departments?page=1&pageSize=1000&onlyOverdue=true', { cache: 'no-store' });
       if (!res.ok) throw new Error('Boshqarmalar ma’lumoti olinmadi');
       const data = await res.json();
 
-      // If requested page is out of bounds (e.g. data changed), adjust
-      currentPage = data.page;
-      totalPages = data.totalPages;
+      allOverdueDepartments = data.allItems || data.items || [];
+      totalPages = Math.max(1, Math.ceil(allOverdueDepartments.length / PAGE_SIZE));
+      currentPage = 1;
 
-      pageIndicatorText.textContent = `${currentPage} / ${totalPages}`;
-      prevPageBtn.disabled = totalPages <= 1;
-      nextPageBtn.disabled = totalPages <= 1;
-
-      renderPaginationDots(totalPages, currentPage);
-
-      // Smooth visual transition
-      deptCardsContainer.classList.add('transitioning');
-      setTimeout(() => {
-        renderDepartmentCards(data.items);
-        deptCardsContainer.classList.remove('transitioning');
-      }, 150);
-
+      renderCurrentPageDepartments();
     } catch (err) {
       console.error('Departments error:', err);
       showToast('Boshqarmalarni yuklashda xatolik', 'error');
     }
   }
 
-  // 5-second Automatic Carousel Rotation
+  // Render currently selected page of departments from in-memory cache (NO network request!)
+  function renderCurrentPageDepartments() {
+    pageIndicatorText.textContent = `${currentPage} / ${totalPages}`;
+    prevPageBtn.disabled = totalPages <= 1;
+    nextPageBtn.disabled = totalPages <= 1;
+
+    renderPaginationDots(totalPages, currentPage);
+
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const pageItems = allOverdueDepartments.slice(startIndex, startIndex + PAGE_SIZE);
+
+    deptCardsContainer.classList.add('transitioning');
+    setTimeout(() => {
+      renderDepartmentCards(pageItems);
+      deptCardsContainer.classList.remove('transitioning');
+    }, 120);
+  }
+
+  // Automatic visual carousel rotation (pure client-side page transition, ZERO server requests)
   function startRotationTimer() {
     stopRotationTimer();
+    if (totalPages <= 1) return;
+
     rotationTimer = setInterval(() => {
-      // Don't rotate if hovered, or modal is open, or only 1 page
+      // Don't rotate if hovered or modal is open
       if (isHovered || taskModal.classList.contains('active') || totalPages <= 1) {
         return;
       }
-      const nextPage = currentPage >= totalPages ? 1 : currentPage + 1;
-      fetchDepartments(nextPage, true);
+      currentPage = currentPage >= totalPages ? 1 : currentPage + 1;
+      renderCurrentPageDepartments();
     }, ROTATION_INTERVAL);
   }
 
@@ -247,7 +191,8 @@
       dot.className = `dot ${i === current ? 'active' : ''}`;
       dot.setAttribute('title', `${i}-sahifa`);
       dot.addEventListener('click', () => {
-        fetchDepartments(i);
+        currentPage = i;
+        renderCurrentPageDepartments();
         startRotationTimer();
       });
       paginationDots.appendChild(dot);
@@ -260,14 +205,6 @@
     const parts = fullName.trim().split(/\s+/);
     if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-
-  // Helper for Cache-busted Photo URL
-  function getPhotoUrl(photo, updatedAt) {
-    if (!photo) return '';
-    const cleanUrl = photo.split('?')[0];
-    const v = updatedAt ? new Date(updatedAt).getTime() : Date.now();
-    return `${cleanUrl}?v=${v}`;
   }
 
   // Render Department Cards
@@ -283,7 +220,7 @@
 
     deptCardsContainer.innerHTML = departments.map(dept => {
       const initials = getInitials(dept.headName);
-      const photoUrl = dept.photo ? getPhotoUrl(dept.photo, dept.updatedAt) : '';
+      const photoUrl = dept.photo || '';
       const portraitHtml = photoUrl
         ? `<img src="${photoUrl}" alt="${dept.headName}" class="portrait-img" onerror="this.outerHTML='<div class=\\'avatar-initials\\'>${initials}</div>'">`
         : `<div class="avatar-initials">${initials}</div>`;
@@ -291,7 +228,6 @@
       return `
         <article class="dept-card" data-dept-id="${dept.id}">
           <div class="dept-card-top">
-            <!-- Enlarged Executive Portrait Container -->
             <div class="portrait-wrapper">
               ${portraitHtml}
               <span class="portrait-status-dot" title="Faol"></span>
@@ -321,7 +257,6 @@
             </div>
           </div>
 
-          <!-- Bottom full-width pale pink overdue panel -->
           <div class="dept-overdue-panel" data-dept-id="${dept.id}" data-dept-name="${dept.name}" tabindex="0" role="button" aria-label="${dept.name} ning muddati o‘tgan topshiriqlarini ochish">
             <div class="overdue-panel-left">
               <div class="warning-icon-box" aria-hidden="true">
@@ -348,7 +283,7 @@
 
     // Attach click listeners to overdue panels
     document.querySelectorAll('.dept-overdue-panel').forEach(panel => {
-      panel.addEventListener('click', (e) => {
+      panel.addEventListener('click', () => {
         const deptId = panel.getAttribute('data-dept-id');
         const deptName = panel.getAttribute('data-dept-name');
         openTasksModal({
@@ -369,11 +304,10 @@
   // Load Department Options for Modal Dropdown
   async function loadDepartmentOptions() {
     try {
-      const res = await fetch(`/api/dashboard/departments?page=1&pageSize=100&onlyOverdue=false&_t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch('/api/dashboard/departments?page=1&pageSize=1000&onlyOverdue=false', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        // Only include departments that have tasks in the active import
-        const activeDepts = (data.items || []).filter(d => d.totalTasks > 0);
+        const activeDepts = (data.allItems || data.items || []).filter(d => d.totalTasks > 0);
         modalDeptSelect.innerHTML = '<option value="all">Barcha boshqarmalar</option>' +
           activeDepts.map(d => `<option value="${d.id}">[ID: #${d.leaderId || '-'}] ${d.name}</option>`).join('');
       }
@@ -396,7 +330,7 @@
     taskModal.classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    stopRotationTimer(); // Pause rotation while user views modal
+    stopRotationTimer();
     fetchModalTasks();
   }
 
@@ -404,7 +338,7 @@
   function closeTasksModal() {
     taskModal.classList.remove('active');
     document.body.style.overflow = '';
-    startRotationTimer(); // Resume rotation
+    startRotationTimer();
   }
 
   // Fetch Tasks for Modal
@@ -418,8 +352,7 @@
         departmentId: modalFilter.departmentId,
         search: modalFilter.search,
         page: modalFilter.page,
-        pageSize: modalFilter.pageSize,
-        _t: Date.now()
+        pageSize: modalFilter.pageSize
       });
 
       const res = await fetch(`/api/tasks?${params.toString()}`, { cache: 'no-store' });
@@ -441,10 +374,10 @@
         const rowNum = (data.page - 1) * data.pageSize + (idx + 1);
 
         let statusBadge = '';
-        if (t.computedStatus === 'overdue') {
+        if (t.status === 'overdue' || t.computedStatus === 'overdue') {
           const delayText = t.delayDays > 0 ? ` (${t.delayDays} kun kechikkan)` : '';
           statusBadge = `<span class="status-badge overdue">Muddati o‘tgan${delayText}</span>`;
-        } else if (t.computedStatus === 'completed') {
+        } else if (t.status === 'completed' || t.computedStatus === 'completed') {
           statusBadge = `<span class="status-badge completed">Bajarilgan</span>`;
         } else {
           statusBadge = `<span class="status-badge in_progress">Bajarish jarayonida</span>`;
@@ -459,9 +392,9 @@
               <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">${t.title}</div>
               <div style="font-size: 11.5px; color: #94a3b8;">${t.docType || 'Hujjat'} • ${t.taskType || 'Topshiriq'}</div>
             </td>
-            <td style="font-size: 13px; font-weight: 500; color: #334155;">${t.departmentName}</td>
-            <td style="font-size: 13px; font-weight: 600; color: #1e293b;">${t.responsiblePerson}</td>
-            <td style="font-size: 13px; font-weight: 600; color: ${t.computedStatus === 'overdue' ? '#dc2626' : '#2563eb'};">
+            <td style="font-size: 13px; font-weight: 500; color: #334155;">${t.departmentName || '-'}</td>
+            <td style="font-size: 13px; font-weight: 600; color: #1e293b;">${t.responsiblePerson || '-'}</td>
+            <td style="font-size: 13px; font-weight: 600; color: ${(t.status === 'overdue' || t.computedStatus === 'overdue') ? '#dc2626' : '#2563eb'};">
               ${formattedDeadline}
             </td>
             <td>${statusBadge}</td>
@@ -478,6 +411,7 @@
   // Toast Notification
   function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `<span>${message}</span>`;
@@ -492,20 +426,18 @@
 
   // Bind Events
   function bindEvents() {
-    // Pagination Controls with wrap-around
     prevPageBtn.addEventListener('click', () => {
-      const prev = currentPage <= 1 ? totalPages : currentPage - 1;
-      fetchDepartments(prev);
+      currentPage = currentPage <= 1 ? totalPages : currentPage - 1;
+      renderCurrentPageDepartments();
       startRotationTimer();
     });
 
     nextPageBtn.addEventListener('click', () => {
-      const next = currentPage >= totalPages ? 1 : currentPage + 1;
-      fetchDepartments(next);
+      currentPage = currentPage >= totalPages ? 1 : currentPage + 1;
+      renderCurrentPageDepartments();
       startRotationTimer();
     });
 
-    // Pause on hover over department section
     if (deptSection) {
       deptSection.addEventListener('mouseenter', () => {
         isHovered = true;
@@ -516,7 +448,6 @@
       });
     }
 
-    // Summary Cards Clicks
     document.getElementById('card-total').addEventListener('click', () => {
       openTasksModal({ status: 'all', departmentId: 'all', title: 'Barcha topshiriqlar ro‘yxati' });
     });
@@ -529,7 +460,6 @@
       openTasksModal({ status: 'overdue', departmentId: 'all', title: 'Muddati o‘tgan topshiriqlar' });
     });
 
-    // Fullscreen Toggle
     fullscreenBtn.addEventListener('click', () => {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => console.error(err));
@@ -544,7 +474,6 @@
       fullscreenText.textContent = document.fullscreenElement ? 'Odatdagi ekran' : 'To‘liq ekran';
     });
 
-    // Logout
     logoutBtn.addEventListener('click', async () => {
       try {
         await fetch('/api/auth/logout', { method: 'POST' });
@@ -554,7 +483,6 @@
       }
     });
 
-    // Modal Events
     closeModalBtn.addEventListener('click', closeTasksModal);
     modalFooterCloseBtn.addEventListener('click', closeTasksModal);
     taskModal.addEventListener('click', (e) => {
@@ -596,48 +524,27 @@
     });
   }
 
-  // Live Sync Listeners (BroadcastChannel + LocalStorage + Click on Live Indicator)
-  function setupLiveSyncListeners() {
+  // Cross-tab synchronization when Admin imports new Excel in another tab
+  function setupCrossTabSync() {
     if (typeof BroadcastChannel !== 'undefined') {
       try {
         const bc = new BroadcastChannel('ijro_monitoring_channel');
-        bc.onmessage = (ev) => {
+        bc.onmessage = async (ev) => {
           if (ev.data && ev.data.type === 'DATA_UPDATED') {
-            autoSyncData(true, true);
+            await Promise.all([fetchStats(), fetchDepartments(), loadDepartmentOptions()]);
+            showToast('Ma’lumotlar yangilandi', 'success');
           }
         };
       } catch (_) {}
     }
 
-    window.addEventListener('storage', (ev) => {
+    window.addEventListener('storage', async (ev) => {
       if (ev.key === 'ijro_data_sync_time') {
-        autoSyncData(true, true);
+        await Promise.all([fetchStats(), fetchDepartments(), loadDepartmentOptions()]);
+        showToast('Ma’lumotlar yangilandi', 'success');
       }
     });
-
-    if (liveIndicator) {
-      liveIndicator.addEventListener('click', () => {
-        autoSyncData(true, true);
-      });
-      liveIndicator.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          autoSyncData(true, true);
-        }
-      });
-    }
   }
 
-  // Fast background polling every 5 seconds for instant detection of new Excel imports on remote TVs/displays
-  function startAutoRefresh() {
-    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-    autoRefreshTimer = setInterval(async () => {
-      // Don't interrupt user if modal is currently open
-      if (taskModal && taskModal.classList.contains('active')) return;
-      await fetchStats();
-    }, 5000);
-  }
-
-  // Run on load
   document.addEventListener('DOMContentLoaded', init);
 })();

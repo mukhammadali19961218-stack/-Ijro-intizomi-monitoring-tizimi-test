@@ -5,18 +5,24 @@
   "main": "index.js",
   "scripts": {
     "start": "node server/server.js",
-    "dev": "node server/server.js"
+    "dev": "node server/server.js",
+    "test": "node tests/business-rules.test.js",
+    "migrate": "node scripts/migrate-json-to-postgres.js",
+    "migrate:portraits": "node scripts/migrate-portraits-to-storage.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.8",
     "express": "^5.3.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.4.0",
+    "pg": "^8.23.1",
     "xlsx": "^0.18.5"
   }
 }

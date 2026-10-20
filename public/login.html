@@ -61,7 +61,7 @@
           <span class="custom-checkbox"></span>
           <span class="label-text">Meni eslab qol</span>
         </label>
-        <a href="javascript:void(0)" class="forgot-link" id="forgot-password-link" onclick="alert('Parolni tiklash uchun tizim administratoriga murojaat qiling (admin: admin123)')">Parolni unutdingizmi?</a>
+        <a href="javascript:void(0)" class="forgot-link" id="forgot-password-link" onclick="alert('Parolni tiklash uchun tizim administratoriga murojaat qiling')">Parolni unutdingizmi?</a>
       </div>
 
       <button type="submit" class="btn-pill-submit" id="login-submit-btn">
@@ -69,16 +69,7 @@
       </button>
     </form>
 
-    <div class="login-footer-section">
-      <div class="demo-badge-title">Tezkor kirish (Sinov profillari)</div>
-      <div class="demo-pill-group">
-        <button type="button" class="btn-pill-demo" id="demo-admin-btn" title="Administrator profili">
-          👑 Administrator
-        </button>
-        <button type="button" class="btn-pill-demo" id="demo-viewer-btn" title="Kuzatuvchi profili">
-          👁️ Kuzatuvchi
-        </button>
-      </div>
+    <div class="login-footer-section" style="margin-top: 24px; padding-top: 16px;">
       <div class="login-subtext">
         Texnik yordam va murojaatlar uchun: <a href="mailto:support@ies.uz" class="highlight-contact" style="text-decoration: none; color: #38bdf8;">support@ies.uz</a>
       </div>
@@ -91,21 +82,6 @@
     const passwordInput = document.getElementById('password');
     const submitBtn = document.getElementById('login-submit-btn');
     const errorAlert = document.getElementById('login-error-alert');
-
-    const demoAdminBtn = document.getElementById('demo-admin-btn');
-    const demoViewerBtn = document.getElementById('demo-viewer-btn');
-
-    demoAdminBtn.addEventListener('click', () => {
-      usernameInput.value = 'admin';
-      passwordInput.value = 'admin123';
-      form.requestSubmit();
-    });
-
-    demoViewerBtn.addEventListener('click', () => {
-      usernameInput.value = 'viewer';
-      passwordInput.value = 'viewer123';
-      form.requestSubmit();
-    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();

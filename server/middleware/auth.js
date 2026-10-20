@@ -1,6 +1,13 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'ijro-intizomi-secret-key-2026-gov-uz';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+function getJwtSecret() {
+  if (!JWT_SECRET || String(JWT_SECRET).trim() === '') {
+    throw new Error('Xavfsizlik konfiguratsiyasi xatosi: JWT_SECRET muhit o‘zgaruvchisi kiritilishi shart.');
+  }
+  return JWT_SECRET;
+}
 
 function authenticate(req, res, next) {
   // Check cookie or Authorization header
@@ -17,7 +24,8 @@ function authenticate(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const secret = getJwtSecret();
+    const decoded = jwt.verify(token, secret);
     req.user = decoded;
     next();
   } catch (err) {
@@ -40,7 +48,7 @@ function requireAdmin(req, res, next) {
 }
 
 module.exports = {
-  JWT_SECRET,
+  getJwtSecret,
   authenticate,
   requireAdmin
 };

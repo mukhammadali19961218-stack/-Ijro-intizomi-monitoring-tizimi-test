@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/common.css">
-  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/common.css?v=2.1">
+  <link rel="stylesheet" href="/css/admin.css?v=2.1">
 </head>
 <body class="admin-page">
 
@@ -207,10 +207,17 @@
                 </a>
               </div>
             </div>
-          </div>
-
-          <div style="background: #eff6ff; border: 1px solid #dbeafe; border-radius: 12px; padding: 14px; font-size: 12.5px; color: #1e40af; margin-top: 24px;">
-            💡 <strong>Eslatma:</strong> Excel yuklangandan so‘ng monitoring dashboardi avtomatik ravishda so‘nggi ma’lumotlar bilan yangilanadi.
+          <div id="active-dataset-info-box" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-top: 24px;">
+            <div style="font-weight: 700; font-size: 13.5px; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <span>📊 Joriy faol ma’lumotlar to‘plami:</span>
+              <span id="active-dataset-version-badge" style="background: #0f172a; color: #38bdf8; font-size: 11.5px; padding: 3px 8px; border-radius: 6px; font-family: monospace;">Versiya #1</span>
+            </div>
+            <div style="font-size: 12.5px; color: #475569; line-height: 1.6;" id="active-dataset-details">
+              • Fayl nomi: <strong id="active-dataset-filename">-</strong><br>
+              • Yuklangan vaqti: <strong id="active-dataset-time">-</strong><br>
+              • Yuklovchi: <strong id="active-dataset-user">-</strong><br>
+              • Topshiriqlar soni: <strong id="active-dataset-rows">-</strong>
+            </div>
           </div>
         </div>
       </div>
@@ -291,10 +298,6 @@
             <input type="text" id="setting-system-title" class="form-control" required>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Dashboard avtomatik yangilanish oralig‘i (sekundlarda)</label>
-            <input type="number" id="setting-refresh-interval" class="form-control" min="10" max="3600" required>
-          </div>
 
           <button type="submit" class="btn btn-primary" style="align-self: flex-start; margin-top: 10px;">
             Sozlamalarni saqlash
@@ -454,6 +457,6 @@
   <!-- Toast Container -->
   <div id="toast-container" aria-live="polite"></div>
 
-  <script src="/js/admin.js?v=2.0"></script>
+  <script src="/js/admin.js?v=2.1"></script>
 </body>
 </html>
