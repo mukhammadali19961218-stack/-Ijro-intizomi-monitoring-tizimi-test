@@ -18,21 +18,70 @@ if (!DATABASE_URL) {
   console.error('========================================================================');
 }
 
-// Configure PostgreSQL connection pool
+// Validate and verify connection configuration safely
+function verifyTransactionPoolerConfig(dbUrl) {
+  if (!dbUrl) return { valid: false, reason: 'DATABASE_URL is missing' };
+  try {
+    const parsed = new URL(dbUrl);
+    const host = parsed.hostname || '';
+    const port = parsed.port || '5432';
+    const username = parsed.username || '';
+
+    const isPoolerHost = host.includes('pooler.supabase.com');
+    const isPoolerPort = port === '6543';
+    const isPoolerUser = username.startsWith('postgres.') && username.length > 9;
+
+    const maskedUser = username.replace(/(postgres\.[a-z0-9]{3})[a-z0-9]+/, '$1***');
+    console.log(`[PostgreSQL Config] Host: ${host}, Port: ${port}, User: ${maskedUser}, SSL: active`);
+
+    if (!isPoolerHost) {
+      console.warn('[PostgreSQL Warning] Host does not match Supabase pooler (expected *.pooler.supabase.com).');
+    }
+    if (!isPoolerPort) {
+      console.warn(`[PostgreSQL Warning] Port is ${port}. Shared Transaction Pooler requires port 6543 for serverless.`);
+    }
+
+    return {
+      valid: isPoolerHost && isPoolerPort && isPoolerUser,
+      isPoolerHost,
+      isPoolerPort,
+      isPoolerUser
+    };
+  } catch (err) {
+    console.error('[PostgreSQL Config] Error parsing DATABASE_URL:', err.message);
+    return { valid: false, reason: err.message };
+  }
+}
+
+// Configure PostgreSQL connection pool for Vercel Serverless & Supabase Transaction Pooler
 let pool = null;
 if (DATABASE_URL) {
+  verifyTransactionPoolerConfig(DATABASE_URL);
+
   const isLocal = DATABASE_URL.includes('localhost') || DATABASE_URL.includes('127.0.0.1');
   pool = new Pool({
     connectionString: DATABASE_URL,
     ssl: isLocal ? false : { rejectUnauthorized: false },
     max: 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000
+    idleTimeoutMillis: 5000,
+    connectionTimeoutMillis: 10000,
+    allowExitOnIdle: true
   });
 
   pool.on('error', (err) => {
     console.error('[PostgreSQL Pool Error]:', err.message);
   });
+
+  // Attach database pool to Vercel Functions / Fluid Compute lifecycle if available
+  try {
+    const { attachDatabasePool } = require('@vercel/functions');
+    if (typeof attachDatabasePool === 'function') {
+      attachDatabasePool(pool);
+      console.log('[PostgreSQL] Database pool attached to Vercel Functions lifecycle.');
+    }
+  } catch (_) {
+    // Local environment or @vercel/functions not loaded
+  }
 }
 
 /**
@@ -49,11 +98,71 @@ function assertDatabaseConfigured() {
 }
 
 /**
- * Execute a SQL query on the pool
+ * Safe production database connectivity diagnostic.
+ * Runs SELECT 1 and reports only non-sensitive connection metrics.
+ */
+async function diagnoseDatabaseConnection() {
+  assertDatabaseConfigured();
+
+  let hostType = 'unknown';
+  try {
+    const url = new URL(DATABASE_URL);
+    if (url.hostname.includes('pooler.supabase.com') && url.port === '6543') {
+      hostType = 'transaction-pooler';
+    } else if (url.hostname.includes('pooler.supabase.com')) {
+      hostType = 'session-pooler';
+    } else if (url.hostname.includes('supabase.co')) {
+      hostType = 'supabase-direct';
+    } else if (url.hostname.includes('localhost') || url.hostname.includes('127.0.0.1')) {
+      hostType = 'local';
+    }
+  } catch (_) {}
+
+  const startTime = Date.now();
+  try {
+    await pool.query('SELECT 1');
+    const elapsedMs = Date.now() - startTime;
+    return {
+      success: true,
+      hostType,
+      elapsedMs,
+      message: 'Database connection verified successfully.'
+    };
+  } catch (err) {
+    const elapsedMs = Date.now() - startTime;
+    console.error('[PostgreSQL Diagnostic Error]:', err.message);
+    return {
+      success: false,
+      hostType,
+      elapsedMs,
+      error: 'Ulanishda xatolik yuz berdi: ' + err.message
+    };
+  }
+}
+
+/**
+ * Execute a SQL query on the pool with serverless timeout recovery
  */
 async function query(text, params = []) {
   assertDatabaseConfigured();
-  return pool.query(text, params);
+  try {
+    return await pool.query(text, params);
+  } catch (err) {
+    const isTimeout = err.message && (
+      err.message.includes('timeout') ||
+      err.message.includes('Connection terminated') ||
+      err.code === '57P01' ||
+      err.code === 'ETIMEDOUT'
+    );
+    if (isTimeout) {
+      console.error('[PostgreSQL Timeout Error]:', err.message);
+      const safeError = new Error('Ma’lumotlar bazasiga ulanish vaqti tugadi (Connection timeout). Iltimos, qayta urinib ko‘ring.');
+      safeError.status = 503;
+      safeError.isTimeout = true;
+      throw safeError;
+    }
+    throw err;
+  }
 }
 
 /**
@@ -61,7 +170,16 @@ async function query(text, params = []) {
  */
 async function withTransaction(callback) {
   assertDatabaseConfigured();
-  const client = await pool.connect();
+  let client;
+  try {
+    client = await pool.connect();
+  } catch (connErr) {
+    console.error('[PostgreSQL Transaction Connection Error]:', connErr.message);
+    const safeError = new Error('Ma’lumotlar bazasiga ulanib bo‘lmadi: ' + connErr.message);
+    safeError.status = 503;
+    throw safeError;
+  }
+
   try {
     await client.query('BEGIN');
     const result = await callback(client);
@@ -81,14 +199,30 @@ async function withTransaction(callback) {
 
 /**
  * Automatically initializes database schema if tables do not exist yet.
+ * Safe for serverless & transaction poolers: checks existence first to avoid redundant DDL.
  */
+let schemaVerified = false;
 let schemaInitPromise = null;
 async function ensureSchema() {
-  if (!pool) return;
+  if (!pool || schemaVerified) return;
   if (schemaInitPromise) return schemaInitPromise;
 
   schemaInitPromise = (async () => {
     try {
+      // Fast check: if users table exists, schema is already complete
+      const checkRes = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' AND table_name = 'users'
+        );
+      `);
+
+      if (checkRes.rows[0] && checkRes.rows[0].exists) {
+        schemaVerified = true;
+        console.log('[PostgreSQL] Database schema verified successfully.');
+        return;
+      }
+
       // 1. Users
       await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -199,21 +333,16 @@ async function ensureSchema() {
         `, [crypto.randomUUID(), adminHash, crypto.randomUUID(), viewerHash]);
       }
 
-      console.log('[PostgreSQL] Database schema verified successfully.');
+      schemaVerified = true;
+      console.log('[PostgreSQL] Database schema initialized successfully.');
     } catch (err) {
+      schemaInitPromise = null;
       console.error('[PostgreSQL Schema Init Error]:', err.message);
       throw err;
     }
   })();
 
   return schemaInitPromise;
-}
-
-// Auto-run schema check if pool exists
-if (pool) {
-  ensureSchema().catch((err) => {
-    console.error('[PostgreSQL Init Failed]:', err.message);
-  });
 }
 
 // ==============================================================
@@ -875,5 +1004,7 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
-  getImportsHistory
+  getImportsHistory,
+  diagnoseDatabaseConnection,
+  verifyTransactionPoolerConfig
 };
