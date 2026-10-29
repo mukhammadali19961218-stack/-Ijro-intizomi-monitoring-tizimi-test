@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/common.css?v=2.1">
-  <link rel="stylesheet" href="/css/dashboard.css?v=2.1">
+  <link rel="stylesheet" href="/css/dashboard.css?v=2.7">
 </head>
 <body class="dashboard-page">
 
@@ -121,30 +121,30 @@
     <section class="top-summary-row" aria-label="Umumiy topshiriqlar ko‘rsatkichlari">
 
       <!-- 1. JAMI TOPSHIRIQLAR -->
-      <article class="summary-card neutral" id="card-total" tabindex="0" role="button" aria-label="Jami topshiriqlar ro‘yxatini ko‘rish">
-        <div class="card-top-row">
-          <div class="pill-heading">JAMI TOPSHIRIQLAR</div>
-          <div class="card-top-icon" aria-hidden="true">
-            <!-- Layers Icon (matching screenshot) -->
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-              <polyline points="2 17 12 22 22 17"/>
-              <polyline points="2 12 12 17 22 12"/>
-            </svg>
+      <article class="summary-card card-total" id="card-total" tabindex="0" role="button" aria-label="Jami topshiriqlar ro‘yxatini ko‘rish">
+        <div class="card-upper-area">
+          <div class="card-header-row">
+            <div class="kpi-icon-tile" aria-hidden="true">
+              <!-- Layers Icon -->
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                <polyline points="2 17 12 22 22 17"/>
+                <polyline points="2 12 12 17 22 12"/>
+              </svg>
+            </div>
+            <span class="kpi-category-label">JAMI TOPSHIRIQLAR</span>
+          </div>
+
+          <div class="card-metric-row">
+            <span class="metric-number metric-total" id="metric-total-num">--</span>
+            <span class="metric-suffix">ta topshiriq</span>
           </div>
         </div>
 
-        <div class="card-metric-row">
-          <span class="metric-number" id="metric-total-num">--</span>
-          <span class="metric-suffix">ta topshiriq</span>
-        </div>
-
-        <div class="card-divider"></div>
-
-        <div class="card-bottom-row">
-          <span class="card-caption">Barcha topshiriqlar (bajarilganlar bilan)</span>
-          <div class="card-arrow-btn" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <div class="kpi-navy-footer">
+          <span class="kpi-footer-desc">Barcha topshiriqlar (bajarilganlar bilan)</span>
+          <div class="kpi-arrow-circle" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="7" y1="17" x2="17" y2="7"/>
               <polyline points="7 7 17 7 17 17"/>
             </svg>
@@ -153,29 +153,29 @@
       </article>
 
       <!-- 2. BAJARISH JARAYONIDA -->
-      <article class="summary-card in-progress" id="card-in-progress" tabindex="0" role="button" aria-label="Bajarish jarayonidagi topshiriqlar ro‘yxatini ko‘rish">
-        <div class="card-top-row">
-          <div class="pill-heading">BAJARISH JARAYONIDA</div>
-          <div class="card-top-icon" aria-hidden="true">
-            <!-- Clock Icon (matching screenshot) -->
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
+      <article class="summary-card card-in-progress" id="card-in-progress" tabindex="0" role="button" aria-label="Bajarish jarayonidagi topshiriqlar ro‘yxatini ko‘rish">
+        <div class="card-upper-area">
+          <div class="card-header-row">
+            <div class="kpi-icon-tile" aria-hidden="true">
+              <!-- Clock Icon -->
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <span class="kpi-category-label">BAJARISH JARAYONIDA</span>
+          </div>
+
+          <div class="card-metric-row">
+            <span class="metric-number metric-progress" id="metric-progress-num">--</span>
+            <span class="metric-suffix">ijroda</span>
           </div>
         </div>
 
-        <div class="card-metric-row">
-          <span class="metric-number" id="metric-progress-num">--</span>
-          <span class="metric-suffix">ijroda</span>
-        </div>
-
-        <div class="card-divider"></div>
-
-        <div class="card-bottom-row">
-          <span class="card-caption">Bajarilmagan va muddati o‘tmagan</span>
-          <div class="card-arrow-btn" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <div class="kpi-navy-footer">
+          <span class="kpi-footer-desc">Bajarilmagan va muddati o‘tmagan</span>
+          <div class="kpi-arrow-circle" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="7" y1="17" x2="17" y2="7"/>
               <polyline points="7 7 17 7 17 17"/>
             </svg>
@@ -184,30 +184,30 @@
       </article>
 
       <!-- 3. MUDDATI O‘TGAN -->
-      <article class="summary-card overdue" id="card-overdue" tabindex="0" role="button" aria-label="Muddati o‘tgan topshiriqlar ro‘yxatini ko‘rish">
-        <div class="card-top-row">
-          <div class="pill-heading">MUDDATI O‘TGAN</div>
-          <div class="card-top-icon" aria-hidden="true">
-            <!-- Alert Triangle Icon (matching screenshot) -->
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/>
-              <line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
+      <article class="summary-card card-overdue" id="card-overdue" tabindex="0" role="button" aria-label="Muddati o‘tgan topshiriqlar ro‘yxatini ko‘rish">
+        <div class="card-upper-area">
+          <div class="card-header-row">
+            <div class="kpi-icon-tile" aria-hidden="true">
+              <!-- Alert Triangle Icon -->
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <span class="kpi-category-label">MUDDATI O‘TGAN</span>
+          </div>
+
+          <div class="card-metric-row">
+            <span class="metric-number metric-overdue" id="metric-overdue-num">--</span>
+            <span class="metric-suffix">kechikkan</span>
           </div>
         </div>
 
-        <div class="card-metric-row">
-          <span class="metric-number" id="metric-overdue-num">--</span>
-          <span class="metric-suffix">kechikkan</span>
-        </div>
-
-        <div class="card-divider"></div>
-
-        <div class="card-bottom-row">
-          <span class="card-caption">Bajarilmagan va ijro muddati o‘tgan</span>
-          <div class="card-arrow-btn" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <div class="kpi-navy-footer">
+          <span class="kpi-footer-desc">Bajarilmagan va ijro muddati o‘tgan</span>
+          <div class="kpi-arrow-circle" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="7" y1="17" x2="17" y2="7"/>
               <polyline points="7 7 17 7 17 17"/>
             </svg>
@@ -339,6 +339,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" aria-live="polite"></div>
 
-  <script src="/js/dashboard.js?v=2.2"></script>
+  <script src="/js/dashboard.js?v=2.4"></script>
 </body>
 </html>

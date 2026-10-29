@@ -227,40 +227,27 @@
 
       return `
         <article class="dept-card" data-dept-id="${dept.id}">
-          <div class="dept-card-top">
+          <div class="dept-card-main">
+            <div class="dept-navy-header-bg"></div>
+
             <div class="portrait-wrapper">
               ${portraitHtml}
               <span class="portrait-status-dot" title="Faol"></span>
             </div>
 
-            <div class="dept-info-col">
-              <div class="dept-name-badge" title="${dept.name}">
-                <svg class="dept-building-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
-                  <path d="M6 12H4a2 2 0 0 0-2 2v8h4"/>
-                  <path d="M18 9h2a2 2 0 0 1 2 2v11h-4"/>
-                  <path d="M10 6h4"/>
-                  <path d="M10 10h4"/>
-                  <path d="M10 14h4"/>
-                  <path d="M10 18h4"/>
-                </svg>
-                <span class="dept-name-text">${dept.name}</span>
-              </div>
+            <div class="dept-emp-name-box">
+              <span class="dept-emp-name-text" title="${dept.headName}">${dept.headName}</span>
+            </div>
 
-              <div class="head-name-wrapper">
-                <h3 class="head-full-name">${dept.headName}</h3>
-                <div class="head-role-label">
-                  <span class="role-bullet"></span>
-                  <span>${dept.headTitle || 'Mas’ul rahbar'}</span>
-                </div>
-              </div>
+            <div class="dept-title-box">
+              <h3 class="dept-title-text" title="${dept.name}">${dept.name}</h3>
             </div>
           </div>
 
           <div class="dept-overdue-panel" data-dept-id="${dept.id}" data-dept-name="${dept.name}" tabindex="0" role="button" aria-label="${dept.name} ning muddati o‘tgan topshiriqlarini ochish">
             <div class="overdue-panel-left">
               <div class="warning-icon-box" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                   <line x1="12" y1="9" x2="12" y2="13"/>
                   <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -273,8 +260,11 @@
             </div>
 
             <div class="overdue-panel-right">
-              <span class="overdue-count-num">${dept.overdueCount}</span>
-              <span class="overdue-count-suffix">ta</span>
+              <div class="overdue-v-divider" aria-hidden="true"></div>
+              <div class="overdue-count-wrap">
+                <span class="overdue-count-num">${dept.overdueCount}</span>
+                <span class="overdue-count-suffix">ta</span>
+              </div>
             </div>
           </div>
         </article>
