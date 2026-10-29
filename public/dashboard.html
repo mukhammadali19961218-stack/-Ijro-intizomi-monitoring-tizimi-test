@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/common.css?v=2.1">
-  <link rel="stylesheet" href="/css/dashboard.css?v=2.7">
+  <link rel="stylesheet" href="/css/dashboard.css?v=3.3">
 </head>
 <body class="dashboard-page">
 
@@ -67,49 +67,69 @@
     </div>
   </div>
 
-  <!-- Compact Formal Header -->
-  <header class="dashboard-header">
-    <div class="header-container">
-      <div class="header-brand">
-        <img src="/images/ies_logo.svg" alt="«IES» AJ Logotipi" class="brand-emblem" id="brand-logo" onerror="this.src='/images/ies_logo_raw.png'">
-        <div class="brand-info">
-          <span class="brand-title" id="org-name-text">«ISSIQLIK ELEKTR STANSIYALARI» AJ</span>
-          <span class="brand-subtitle" id="sub-org-text">Ijro intizomi monitoring tizimi</span>
+  <!-- Centered Identity Header with Live Date & Time Toolbar -->
+  <header class="dashboard-header" role="banner">
+    <!-- Row 1: Centered Identity Row -->
+    <div class="header-identity-section">
+      <div class="header-identity-row">
+        <div class="header-side-col header-left-col">
+          <img src="/images/ies_logo.svg" alt="«IES» AJ Logotipi" class="brand-emblem" id="brand-logo" onerror="this.src='/images/ies_logo_raw.png'">
+        </div>
+
+        <div class="header-center-col">
+          <h1 class="header-org-title" id="org-name-text">«ISSIQLIK ELEKTR STANSIYALARI» AJ</h1>
+          <div class="header-org-subtitle" id="sub-org-text">Monitoring axborot tizimi • Ijro intizomi monitoringi tizimi</div>
+        </div>
+
+        <div class="header-side-col header-right-col">
+          <img src="/images/emblem_uz.svg" alt="O‘zbekiston Respublikasi Davlat gerbi" class="state-emblem-img">
         </div>
       </div>
+    </div>
 
-      <div class="header-controls">
-        <div class="test-badge-pill" title="Tizim hozirda test rejimida ishlamoqda">
-          <span class="spin-gear">⚙️</span>
-          <span>Test rejimida ishlamoqda</span>
+    <!-- Row 2: Slim Date-and-Clock Toolbar (Divided by navy line above it) -->
+    <div class="header-toolbar-row">
+      <div class="header-toolbar-container">
+        <div class="toolbar-left">
+          <button class="btn-header-pill" id="fullscreen-btn" title="To‘liq ekran rejimi" aria-label="To‘liq ekran rejimi">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+            <span id="fullscreen-text">To‘liq ekran</span>
+          </button>
         </div>
 
+        <div class="toolbar-center">
+          <div class="header-datetime-wrap" id="header-datetime-badge">
+            <!-- Calendar outline icon -->
+            <svg class="dt-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span class="dt-date-text" id="header-live-date">--</span>
 
-        <button class="btn-header" id="fullscreen-btn" title="To‘liq ekran rejimi">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-          </svg>
-          <span id="fullscreen-text">To‘liq ekran</span>
-        </button>
+            <span class="dt-v-sep" aria-hidden="true"></span>
 
-        <a href="/admin" class="btn-header admin-btn" id="admin-link-btn" style="display: none;" title="Boshqaruv paneliga o‘tish">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-          </svg>
-          <span>Admin panel</span>
-        </a>
-
-        <div class="user-badge" id="current-user-box">
-          <span id="user-display-name">Foydalanuvchi</span>
-          <span class="user-badge-role" id="user-role-badge">Admin</span>
+            <!-- Clock outline icon -->
+            <svg class="dt-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span class="dt-time-text" id="header-live-time">--:--</span>
+            <span class="dt-tz-label">Toshkent vaqti</span>
+          </div>
         </div>
 
-        <button class="btn-header" id="logout-btn" title="Tizimdan chiqish">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-          </svg>
-          <span>Chiqish</span>
-        </button>
+        <div class="toolbar-right">
+          <button class="btn-header-pill" id="logout-btn" title="Tizimdan chiqish" aria-label="Tizimdan chiqish">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+            </svg>
+            <span>Chiqish</span>
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -339,6 +359,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" aria-live="polite"></div>
 
-  <script src="/js/dashboard.js?v=2.4"></script>
+  <script src="/js/dashboard.js?v=3.1"></script>
 </body>
 </html>

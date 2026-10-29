@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 56" fill="none">
+  <defs>
+    <linearGradient id="pylonFadeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.65"/>
+      <stop offset="45%" stop-color="#93c5fd" stop-opacity="0.5"/>
+      <stop offset="80%" stop-color="#bfdbfe" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#bfdbfe" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ground Reference Line -->
+  <line x1="5" y1="52" x2="255" y2="52" stroke="url(#pylonFadeGrad)" stroke-width="0.8" stroke-dasharray="2 3"/>
+
+  <!-- Pylon 1: Main High-Voltage Tower (x around 65) -->
+  <g stroke="url(#pylonFadeGrad)" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Peak Ground Wire Tip -->
+    <path d="M65 4 L62 12 L68 12 Z"/>
+    <line x1="65" y1="4" x2="65" y2="12"/>
+
+    <!-- Upper Crossarm -->
+    <line x1="50" y1="16" x2="80" y2="16"/>
+    <line x1="50" y1="16" x2="65" y2="12"/>
+    <line x1="80" y1="16" x2="65" y2="12"/>
+    <!-- Insulators Upper -->
+    <line x1="52" y1="16" x2="52" y2="20" stroke-width="1.3"/>
+    <line x1="78" y1="16" x2="78" y2="20" stroke-width="1.3"/>
+
+    <!-- Middle Crossarm -->
+    <line x1="44" y1="24" x2="86" y2="24"/>
+    <line x1="44" y1="24" x2="65" y2="16"/>
+    <line x1="86" y1="24" x2="65" y2="16"/>
+    <!-- Insulators Middle -->
+    <line x1="46" y1="24" x2="46" y2="28" stroke-width="1.3"/>
+    <line x1="84" y1="24" x2="84" y2="28" stroke-width="1.3"/>
+
+    <!-- Lower Crossarm -->
+    <line x1="48" y1="32" x2="82" y2="32"/>
+    <line x1="48" y1="32" x2="65" y2="24"/>
+    <line x1="82" y1="32" x2="65" y2="24"/>
+    <!-- Insulators Lower -->
+    <line x1="50" y1="32" x2="50" y2="36" stroke-width="1.3"/>
+    <line x1="80" y1="32" x2="80" y2="36" stroke-width="1.3"/>
+
+    <!-- Tower Body / Waist -->
+    <line x1="61" y1="12" x2="61" y2="32"/>
+    <line x1="69" y1="12" x2="69" y2="32"/>
+    <line x1="61" y1="20" x2="69" y2="24"/>
+    <line x1="69" y1="20" x2="61" y2="24"/>
+
+    <!-- Tower Legs (Spreading to ground) -->
+    <line x1="61" y1="32" x2="53" y2="52"/>
+    <line x1="69" y1="32" x2="77" y2="52"/>
+    
+    <!-- Lattice Bracing Legs -->
+    <line x1="60" y1="37" x2="70" y2="37"/>
+    <line x1="57" y1="44" x2="73" y2="44"/>
+    <line x1="61" y1="32" x2="70" y2="37"/>
+    <line x1="69" y1="32" x2="60" y2="37"/>
+    <line x1="60" y1="37" x2="73" y2="44"/>
+    <line x1="70" y1="37" x2="57" y2="44"/>
+    <line x1="57" y1="44" x2="77" y2="52"/>
+    <line x1="73" y1="44" x2="53" y2="52"/>
+  </g>
+
+  <!-- Pylon 2: Secondary Perspective Pylon (x around 170, smaller) -->
+  <g stroke="url(#pylonFadeGrad)" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Peak -->
+    <path d="M170 12 L168 18 L172 18 Z"/>
+    
+    <!-- Crossarms -->
+    <line x1="158" y1="21" x2="182" y2="21"/>
+    <line x1="158" y1="21" x2="170" y2="18"/>
+    <line x1="182" y1="21" x2="170" y2="18"/>
+    <line x1="154" y1="27" x2="186" y2="27"/>
+    <line x1="154" y1="27" x2="170" y2="21"/>
+    <line x1="186" y1="27" x2="170" y2="21"/>
+
+    <!-- Tower Legs -->
+    <line x1="167" y1="27" x2="161" y2="52"/>
+    <line x1="173" y1="27" x2="179" y2="52"/>
+    <line x1="165" y1="35" x2="175" y2="35"/>
+    <line x1="163" y1="43" x2="177" y2="43"/>
+    <line x1="167" y1="27" x2="175" y2="35"/>
+    <line x1="173" y1="27" x2="165" y2="35"/>
+    <line x1="165" y1="35" x2="177" y2="43"/>
+    <line x1="175" y1="35" x2="163" y2="43"/>
+    <line x1="163" y1="43" x2="179" y2="52"/>
+    <line x1="177" y1="43" x2="161" y2="52"/>
+  </g>
+
+  <!-- Catenary Power Transmission Cables -->
+  <g stroke="url(#pylonFadeGrad)" stroke-width="0.95" fill="none">
+    <!-- Top Ground / Shield Wire -->
+    <path d="M0 8 Q32 14 65 4 Q117 18 170 12 Q215 16 260 20"/>
+    
+    <!-- Conductor Cable 1 (Upper) -->
+    <path d="M0 26 Q26 30 52 20 Q106 32 159 23 Q210 28 260 30"/>
+
+    <!-- Conductor Cable 2 (Middle) -->
+    <path d="M0 34 Q24 38 46 28 Q100 40 154 29 Q208 34 260 38"/>
+
+    <!-- Conductor Cable 3 (Lower) -->
+    <path d="M0 42 Q25 45 50 36 Q108 44 165 37 Q212 40 260 45"/>
+
+    <!-- Right Side Lines (Extending and gently curving toward center) -->
+    <path d="M78 20 Q124 34 181 23 Q220 28 260 32"/>
+    <path d="M84 28 Q128 41 185 29 Q225 35 260 39"/>
+    <path d="M80 36 Q130 46 179 37 Q222 41 260 46"/>
+  </g>
+</svg>

@@ -54,8 +54,94 @@
   const modalNextBtn = document.getElementById('modal-next-btn');
   const modalPageText = document.getElementById('modal-page-text');
 
+  // Live Tashkent Date and Clock Manager
+  let clockTimer = null;
+  let clockInitialized = false;
+
+  const UZ_MONTH_NAMES = [
+    'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
+    'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'
+  ];
+
+  function formatTashkentDateTime(now = new Date()) {
+    try {
+      // Format Date in Asia/Tashkent time zone
+      const dtf = new Intl.DateTimeFormat('uz-Latn-UZ', {
+        timeZone: 'Asia/Tashkent',
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric'
+      });
+      const parts = dtf.formatToParts(now);
+      const dayRaw = parts.find(p => p.type === 'day')?.value || String(now.getDate());
+      const day = parseInt(dayRaw, 10);
+      const monthNum = parseInt(parts.find(p => p.type === 'month')?.value || (now.getMonth() + 1), 10);
+      const year = parts.find(p => p.type === 'year')?.value || String(now.getFullYear());
+      const monthName = UZ_MONTH_NAMES[monthNum - 1] || 'oy';
+      const formattedDate = `${day} ${monthName} ${year}`;
+
+      // Format 24-hour time (HH:mm) in Asia/Tashkent time zone
+      const timeFmt = new Intl.DateTimeFormat('uz-Latn-UZ', {
+        timeZone: 'Asia/Tashkent',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23'
+      });
+      const timeParts = timeFmt.formatToParts(now);
+      const hour = timeParts.find(p => p.type === 'hour')?.value;
+      const minute = timeParts.find(p => p.type === 'minute')?.value;
+      const formattedTime = (hour && minute) ? `${hour}:${minute}` : timeFmt.format(now);
+
+      return { formattedDate, formattedTime };
+    } catch (_) {
+      const day = now.getDate();
+      const month = UZ_MONTH_NAMES[now.getMonth()];
+      const year = now.getFullYear();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      return {
+        formattedDate: `${day} ${month} ${year}`,
+        formattedTime: `${hh}:${mm}`
+      };
+    }
+  }
+
+  function updateHeaderClock() {
+    const dateEl = document.getElementById('header-live-date');
+    const timeEl = document.getElementById('header-live-time');
+    if (!dateEl && !timeEl) return;
+
+    const { formattedDate, formattedTime } = formatTashkentDateTime();
+    if (dateEl && dateEl.textContent !== formattedDate) {
+      dateEl.textContent = formattedDate;
+    }
+    if (timeEl && timeEl.textContent !== formattedTime) {
+      timeEl.textContent = formattedTime;
+    }
+  }
+
+  function initHeaderClock() {
+    // Render immediately on initial load
+    updateHeaderClock();
+
+    if (clockInitialized) return;
+    clockInitialized = true;
+
+    // Check periodically to guarantee timely minute rollover and midnight date transition
+    if (clockTimer) clearInterval(clockTimer);
+    clockTimer = setInterval(updateHeaderClock, 10000);
+
+    // Refresh immediately when tab gains focus / becomes visible
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        updateHeaderClock();
+      }
+    });
+  }
+
   // Initialize - Single controlled data load
   async function init() {
+    initHeaderClock();
     await checkAuth();
     await loadSettings();
     await Promise.all([
@@ -80,9 +166,9 @@
       currentUser = data.user;
 
       if (currentUser) {
-        userDisplayName.textContent = currentUser.fullName || currentUser.username;
-        userRoleBadge.textContent = currentUser.role === 'admin' ? 'Admin' : 'Kuzatuvchi';
-        if (currentUser.role === 'admin') {
+        if (userDisplayName) userDisplayName.textContent = currentUser.fullName || currentUser.username;
+        if (userRoleBadge) userRoleBadge.textContent = currentUser.role === 'admin' ? 'Admin' : 'Kuzatuvchi';
+        if (adminLinkBtn && currentUser.role === 'admin') {
           adminLinkBtn.style.display = 'inline-flex';
         }
       }
